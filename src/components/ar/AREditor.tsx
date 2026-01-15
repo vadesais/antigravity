@@ -1,0 +1,306 @@
+import { useState, useEffect, useCallback } from 'react';
+import ARCamera from './ARCamera';
+import ARComponentsPanel from './ARComponentsPanel';
+import ARFineControls from './ARFineControls';
+import { useARState } from '@/hooks/useARState';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Tag, Save, Loader2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+interface EditingGlass {
+  id: string;
+  name: string;
+  price: string | null;
+  category: string | null;
+  image_url: string;
+  buy_link: string | null;
+  ar_config: any;
+}
+
+interface AREditorProps {
+  profileId: string;
+  categories: string[];
+  onSave: (glassData: {
+    name: string;
+    price: string;
+    category: string;
+    image_url: string;
+    buy_link: string;
+    ar_config: any;
+  }) => Promise<void>;
+  editingGlass?: EditingGlass | null;
+  onCancel?: () => void;
+  isSubmitting?: boolean;
+}
+
+export default function AREditor({ profileId, categories, onSave, editingGlass, onCancel, isSubmitting = false }: AREditorProps) {
+  const { toast } = useToast();
+  const {
+    model,
+    editingPart,
+    autoAnchors,
+    setAutoAnchors,
+    isLoading,
+    setIsLoading,
+    smoothedRef,
+    lastAnchorsRef,
+    updatePart,
+    snapAnchorsToFront,
+    selectPart,
+    clearAll,
+    pushHistory,
+    getARConfig,
+    applyARConfig,
+  } = useARState();
+
+  // Form state
+  const [name, setName] = useState(editingGlass?.name || '');
+  const [price, setPrice] = useState(editingGlass?.price || '');
+  const [category, setCategory] = useState(editingGlass?.category || '');
+  const [buyLink, setBuyLink] = useState(editingGlass?.buy_link || '');
+
+  // Apply initial AR config and load front image on mount/change
+  useEffect(() => {
+    if (editingGlass) {
+      setName(editingGlass.name || '');
+      setPrice(editingGlass.price || '');
+      setCategory(editingGlass.category || '');
+      setBuyLink(editingGlass.buy_link || '');
+
+      if (editingGlass.ar_config) {
+        applyARConfig(editingGlass.ar_config);
+      }
+
+      // Load front image from existing glass
+      if (editingGlass.image_url) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          updatePart('front', { img, remoteUrl: editingGlass.image_url });
+        };
+        img.src = editingGlass.image_url;
+      }
+    } else {
+      // Clear form for new glass
+      setName('');
+      setPrice('');
+      setCategory('');
+      setBuyLink('');
+      clearAll();
+    }
+  }, [editingGlass, applyARConfig, updatePart, clearAll]);
+
+  const handleUploadPart = useCallback((
+    partName: keyof typeof model.parts,
+    img: HTMLImageElement,
+    remoteUrl: string
+  ) => {
+    updatePart(partName, { img, remoteUrl });
+    selectPart(partName);
+
+    // Auto-snap anchors when front is uploaded
+    if (partName === 'front' && autoAnchors) {
+      setTimeout(snapAnchorsToFront, 100);
+    }
+  }, [updatePart, selectPart, autoAnchors, snapAnchorsToFront]);
+
+  const handleScaleChange = useCallback((value: number) => {
+    if (editingPart) {
+      updatePart(editingPart, { scale: value });
+      if (editingPart === 'front' && autoAnchors) {
+        snapAnchorsToFront();
+      }
+    }
+  }, [editingPart, updatePart, autoAnchors, snapAnchorsToFront]);
+
+  const handleSaveDefault = useCallback(() => {
+    const config = getARConfig();
+    localStorage.setItem('ar_default_template', JSON.stringify(config));
+    toast({ title: 'Configuração salva como padrão!' });
+  }, [getARConfig, toast]);
+
+  const handleClearAll = useCallback(() => {
+    clearAll();
+    localStorage.removeItem('ar_glasses_config');
+    toast({ title: 'Editor limpo!' });
+  }, [clearAll, toast]);
+
+  const formatPrice = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    const formatted = (parseInt(numbers) / 100).toFixed(2).replace('.', ',');
+    return formatted === 'NaN' ? '' : formatted;
+  };
+
+  const handleSubmit = async () => {
+    if (!name) {
+      toast({
+        title: 'Nome obrigatório',
+        description: 'Digite um nome para o óculos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!model.parts.front.img) {
+      toast({
+        title: 'Imagem obrigatória',
+        description: 'Faça upload da imagem frontal do óculos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const arConfig = getARConfig();
+    const imageUrl = model.parts.front.remoteUrl || '';
+
+    await onSave({
+      name,
+      price,
+      category,
+      image_url: imageUrl,
+      buy_link: buyLink,
+      ar_config: arConfig,
+    });
+  };
+
+  return (
+    <div className="w-full flex flex-col lg:flex-row gap-8 items-start">
+      {/* Left: AR Camera */}
+      <div className="w-full lg:flex-[1.5] flex flex-col items-center gap-6">
+        <ARCamera
+          model={model}
+          editingPart={editingPart}
+          autoAnchors={autoAnchors}
+          isLoading={isLoading}
+          onLoadingChange={setIsLoading}
+          onVideoStarted={() => selectPart('front')}
+          smoothedRef={smoothedRef}
+          lastAnchorsRef={lastAnchorsRef}
+          onUpdatePart={updatePart}
+          onSnapAnchors={snapAnchorsToFront}
+          onPushHistory={pushHistory}
+        />
+      </div>
+
+      {/* Right: Controls Panel */}
+      <div className="w-full lg:w-96 flex flex-col gap-6 lg:sticky lg:top-28">
+        {/* Components Panel */}
+        <ARComponentsPanel
+          model={model}
+          editingPart={editingPart}
+          onSelectPart={selectPart}
+          onUploadPart={handleUploadPart}
+          onSaveDefault={handleSaveDefault}
+          onClearAll={handleClearAll}
+          profileId={profileId}
+        />
+
+        {/* Fine Controls (shown when editing) */}
+        {editingPart && (
+          <ARFineControls
+            model={model}
+            editingPart={editingPart}
+            autoAnchors={autoAnchors}
+            onAutoAnchorsChange={setAutoAnchors}
+            onScaleChange={handleScaleChange}
+          />
+        )}
+
+        {/* Product Info Form */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h2 className="text-base font-bold text-slate-800 flex items-center gap-2 mb-5">
+            <Tag className="w-5 h-5 text-blue-600" /> Informações do Produto
+          </h2>
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs font-semibold text-slate-500">Nome do Óculos *</Label>
+              <Input
+                placeholder="Ex: Ray-Ban Aviator"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs font-semibold text-slate-500">Preço (R$)</Label>
+                <Input
+                  placeholder="0,00"
+                  value={price}
+                  onChange={(e) => setPrice(formatPrice(e.target.value))}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-slate-500">Categoria</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold text-slate-500">Link de Compra</Label>
+              <Input
+                placeholder="https://..."
+                value={buyLink}
+                onChange={(e) => setBuyLink(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
+            <div className="flex gap-3 mt-2">
+              {onCancel && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onCancel}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              )}
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting || !model.parts.front.img}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    {editingGlass ? 'Atualizar' : 'Publicar'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
