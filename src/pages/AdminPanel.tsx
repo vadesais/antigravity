@@ -699,6 +699,11 @@ export default function AdminPanel() {
               setViewMode('list');
             }}
             isSubmitting={isSubmitting}
+            waConfig={{
+              enabled: waEnabled,
+              number: waNumber,
+              message: waMessage
+            }}
           />
         )}
 
@@ -1055,8 +1060,19 @@ export default function AdminPanel() {
                       )}
                     </div>
 
-                    <Button className="w-full bg-green-600 hover:bg-green-700">
-                      Salvar Configurações
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={handleSaveConfig}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Salvando...
+                        </>
+                      ) : (
+                        'Salvar Configurações'
+                      )}
                     </Button>
                   </div>
                 </>
