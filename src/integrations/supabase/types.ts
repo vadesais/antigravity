@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          store_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          store_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       glasses: {
         Row: {
           active: boolean | null
