@@ -317,18 +317,11 @@ export default function Vitrine() {
                       alt={glass.name}
                       className="max-h-full max-w-full object-contain mix-blend-multiply transition-transform group-hover:scale-105"
                     />
-                    {/* Category Badge */}
-                    {glass.category && (
-                      <span className="absolute top-2 left-2 bg-slate-200 text-slate-700 text-[10px] px-2 py-1 rounded font-medium uppercase tracking-wide">
-                        {glass.category}
-                      </span>
-                    )}
-                    {/* AR Badge */}
-                    {hasArConfig && (
-                      <span className="absolute top-2 right-2 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded font-bold">
-                        AR
-                      </span>
-                    )}
+
+                    {/* Price Badge (replaced AR) */}
+                    <span className="absolute top-2 right-2 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded font-bold">
+                      {priceDisplay}
+                    </span>
                   </div>
 
                   {/* Info */}
@@ -338,7 +331,7 @@ export default function Vitrine() {
                         {glass.name}
                       </h4>
                       <p className="text-slate-500 text-sm font-medium mt-1">
-                        {priceDisplay}
+                        {/* Price moved to top */}
                       </p>
                     </div>
 

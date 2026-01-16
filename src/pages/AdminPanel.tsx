@@ -13,6 +13,7 @@ import {
   Edit,
   List,
   Settings,
+  Share2,
   Search,
   ExternalLink,
   Palette,
@@ -746,15 +747,7 @@ export default function AdminPanel() {
                   </SelectContent>
                 </Select>
 
-                {/* DNP Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white border-0"
-                  onClick={() => window.open('https://lopix.app/pupilometro', '_blank')}
-                >
-                  <Ruler className="w-4 h-4 mr-1" /> DNP
-                </Button>
+
 
                 {/* New Button */}
                 <Button
@@ -839,331 +832,348 @@ export default function AdminPanel() {
                           </button>
                         </div>
                       </div>
+                      {/* Link Provador Button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-3 text-xs border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800"
+                        onClick={() => {
+                          const link = `${window.location.origin}/provador/${glass.id}`;
+                          navigator.clipboard.writeText(link);
+                          toast({ title: 'Link do provador copiado!' });
+                        }}
+                      >
+                        <Share2 className="w-3 h-3 mr-2" />
+                        Link Provador
+                      </Button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        )}
+        )
+        }
 
         {/* CONFIG VIEW */}
-        {viewMode === 'config' && (
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              {configMenu === 'main' && (
-                <>
-                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-6">
-                    <Settings className="w-5 h-5 text-blue-600" /> Configurações
-                  </h2>
+        {
+          viewMode === 'config' && (
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                {configMenu === 'main' && (
+                  <>
+                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-6">
+                      <Settings className="w-5 h-5 text-blue-600" /> Configurações
+                    </h2>
 
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => setConfigMenu('site')}
-                      className="w-full p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition flex items-center gap-4 group"
-                    >
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-                        <Palette className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <h3 className="font-bold text-slate-800 group-hover:text-blue-600">
-                          Personalização da Vitrine
-                        </h3>
-                        <p className="text-xs text-slate-500">Banner, logo e cores do site</p>
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-slate-400" />
-                    </button>
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => setConfigMenu('site')}
+                        className="w-full p-4 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition flex items-center gap-4 group"
+                      >
+                        <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
+                          <Palette className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <h3 className="font-bold text-slate-800 group-hover:text-blue-600">
+                            Personalização da Vitrine
+                          </h3>
+                          <p className="text-xs text-slate-500">Banner, logo e cores do site</p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-slate-400" />
+                      </button>
 
-                    <button
-                      onClick={() => setConfigMenu('whatsapp')}
-                      className="w-full p-4 rounded-xl border border-slate-200 hover:border-green-300 hover:bg-green-50 transition flex items-center gap-4 group"
-                    >
-                      <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-                        <MessageSquare className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <h3 className="font-bold text-slate-800 group-hover:text-green-600">
-                          Gerar Link WhatsApp
-                        </h3>
-                        <p className="text-xs text-slate-500">Configure botões de compra automáticos</p>
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-slate-400" />
-                    </button>
+                      <button
+                        onClick={() => setConfigMenu('whatsapp')}
+                        className="w-full p-4 rounded-xl border border-slate-200 hover:border-green-300 hover:bg-green-50 transition flex items-center gap-4 group"
+                      >
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                          <MessageSquare className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <h3 className="font-bold text-slate-800 group-hover:text-green-600">
+                            Gerar Link WhatsApp
+                          </h3>
+                          <p className="text-xs text-slate-500">Configure botões de compra automáticos</p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-slate-400" />
+                      </button>
 
-                    <button
-                      onClick={() => setConfigMenu('categories')}
-                      className="w-full p-4 rounded-xl border border-slate-200 hover:border-orange-300 hover:bg-orange-50 transition flex items-center gap-4 group"
-                    >
-                      <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
-                        <Layers className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <h3 className="font-bold text-slate-800 group-hover:text-orange-600">
-                          Gerenciar Categorias
-                        </h3>
-                        <p className="text-xs text-slate-500">Adicionar e remover categorias personalizadas</p>
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-slate-400" />
-                    </button>
-                  </div>
-                </>
-              )}
+                      <button
+                        onClick={() => setConfigMenu('categories')}
+                        className="w-full p-4 rounded-xl border border-slate-200 hover:border-orange-300 hover:bg-orange-50 transition flex items-center gap-4 group"
+                      >
+                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                          <Layers className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <h3 className="font-bold text-slate-800 group-hover:text-orange-600">
+                            Gerenciar Categorias
+                          </h3>
+                          <p className="text-xs text-slate-500">Adicionar e remover categorias personalizadas</p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-slate-400" />
+                      </button>
+                    </div>
+                  </>
+                )}
 
-              {configMenu === 'site' && (
-                <>
-                  <div className="flex items-center gap-3 mb-6">
-                    <button
-                      onClick={() => setConfigMenu('main')}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"
-                    >
-                      <ArrowLeft className="w-4 h-4 text-slate-600" />
-                    </button>
-                    <h2 className="text-xl font-bold text-slate-800">Personalização da Vitrine</h2>
-                  </div>
-
-                  <div className="space-y-6">
-                    {/* Banner */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700">Banner do Topo</Label>
-                      <div className="relative w-full h-32 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 group">
-                        {bannerUrl ? (
-                          <img src={bannerUrl} className="w-full h-full object-cover" alt="Banner" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-400">
-                            Sem banner
-                          </div>
-                        )}
-                        <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
-                          <UploadCloud className="w-6 h-6 mb-1" />
-                          <span className="text-xs font-bold">Alterar Banner</span>
-                          <input type="file" className="hidden" accept="image/*" onChange={handleBannerUpload} />
-                        </label>
-                      </div>
+                {configMenu === 'site' && (
+                  <>
+                    <div className="flex items-center gap-3 mb-6">
+                      <button
+                        onClick={() => setConfigMenu('main')}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"
+                      >
+                        <ArrowLeft className="w-4 h-4 text-slate-600" />
+                      </button>
+                      <h2 className="text-xl font-bold text-slate-800">Personalização da Vitrine</h2>
                     </div>
 
-                    {/* Logo */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700">Logo da Loja</Label>
-                      <div className="flex items-center gap-4">
-                        <div className="relative w-20 h-20 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 group flex-shrink-0 flex items-center justify-center">
-                          {logoUrl ? (
-                            <img src={logoUrl} className="w-full h-full object-contain p-2" alt="Logo" />
+                    <div className="space-y-6">
+                      {/* Banner */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-700">Banner do Topo</Label>
+                        <div className="relative w-full h-32 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 group">
+                          {bannerUrl ? (
+                            <img src={bannerUrl} className="w-full h-full object-cover" alt="Banner" />
                           ) : (
-                            <span className="text-slate-400 text-xs text-center">Sem Logo</span>
+                            <div className="w-full h-full flex items-center justify-center text-slate-400">
+                              Sem banner
+                            </div>
                           )}
-                          <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white cursor-pointer transition-opacity">
-                            <Upload className="w-4 h-4" />
-                            <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                          <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
+                            <UploadCloud className="w-6 h-6 mb-1" />
+                            <span className="text-xs font-bold">Alterar Banner</span>
+                            <input type="file" className="hidden" accept="image/*" onChange={handleBannerUpload} />
                           </label>
                         </div>
-                        <div className="text-xs text-slate-500">
-                          Recomendado: PNG transparente.<br />Substitui o nome da loja no topo.
-                        </div>
                       </div>
-                    </div>
 
-                    {/* Colors */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-bold text-slate-700">Cor dos Botões</Label>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="color"
-                          value={primaryColor}
-                          onChange={(e) => setPrimaryColor(e.target.value)}
-                          className="w-12 h-12 rounded cursor-pointer border-0 p-0"
-                        />
-                        <div className="flex-1">
-                          <div className="bg-slate-50 p-3 rounded border border-slate-100 flex gap-2 items-center">
-                            <span className="text-xs text-slate-500">Preview:</span>
-                            <button
-                              className="px-4 py-1.5 rounded text-white text-xs font-bold shadow-sm"
-                              style={{ backgroundColor: primaryColor }}
-                            >
-                              Botão Exemplo
-                            </button>
+                      {/* Logo */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-700">Logo da Loja</Label>
+                        <div className="flex items-center gap-4">
+                          <div className="relative w-20 h-20 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 group flex-shrink-0 flex items-center justify-center">
+                            {logoUrl ? (
+                              <img src={logoUrl} className="w-full h-full object-contain p-2" alt="Logo" />
+                            ) : (
+                              <span className="text-slate-400 text-xs text-center">Sem Logo</span>
+                            )}
+                            <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white cursor-pointer transition-opacity">
+                              <Upload className="w-4 h-4" />
+                              <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                            </label>
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            Recomendado: PNG transparente.<br />Substitui o nome da loja no topo.
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <Button
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                      onClick={handleSaveConfig}
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Salvando...
-                        </>
-                      ) : (
-                        'Salvar Alterações'
-                      )}
-                    </Button>
-                  </div>
-                </>
-              )}
-
-              {configMenu === 'whatsapp' && (
-                <>
-                  <div className="flex items-center gap-3 mb-6">
-                    <button
-                      onClick={() => setConfigMenu('main')}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"
-                    >
-                      <ArrowLeft className="w-4 h-4 text-slate-600" />
-                    </button>
-                    <h2 className="text-xl font-bold text-slate-800">Gerar Link WhatsApp</h2>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Switch
-                          checked={waEnabled}
-                          onCheckedChange={setWaEnabled}
-                        />
-                        <span className="text-sm font-bold text-slate-800">Ativar Link Automático</span>
-                      </div>
-
-                      {waEnabled && (
-                        <div className="space-y-4">
-                          <div>
-                            <Label className="block text-xs font-bold text-green-800 mb-1">
-                              Número do WhatsApp (DDD + Número)
-                            </Label>
-                            <Input
-                              value={waNumber}
-                              onChange={(e) => setWaNumber(e.target.value)}
-                              placeholder="Ex: 5511999999999"
-                              className="border-green-200 focus:border-green-500"
-                            />
-                            <p className="text-[10px] text-green-600 mt-1">
-                              Apenas números. Ex: 5511999998888
-                            </p>
-                          </div>
-                          <div>
-                            <Label className="block text-xs font-bold text-green-800 mb-1">
-                              Mensagem Padrão
-                            </Label>
-                            <Input
-                              value={waMessage}
-                              onChange={(e) => setWaMessage(e.target.value)}
-                              placeholder="Ex: Olá, tenho interesse no modelo"
-                              className="border-green-200 focus:border-green-500"
-                            />
-                            <p className="text-[10px] text-green-600 mt-1">
-                              Dica: Use {'{ref}'} para inserir o nome do óculos automaticamente.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <Button
-                      className="w-full bg-green-600 hover:bg-green-700"
-                      onClick={handleSaveConfig}
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Salvando...
-                        </>
-                      ) : (
-                        'Salvar Configurações'
-                      )}
-                    </Button>
-                  </div>
-                </>
-              )}
-
-              {configMenu === 'categories' && (
-                <>
-                  <div className="flex items-center gap-3 mb-6">
-                    <button
-                      onClick={() => setConfigMenu('main')}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"
-                    >
-                      <ArrowLeft className="w-4 h-4 text-slate-600" />
-                    </button>
-                    <h2 className="text-xl font-bold text-slate-800">Categorias</h2>
-                  </div>
-
-                  <div className="space-y-6">
-                    {/* Categories Display - Tag Style */}
-                    <div>
-                      <Label className="text-sm font-semibold text-slate-700 mb-3 block">
-                        Suas Categorias
-                      </Label>
-
-                      {categories.length === 0 ? (
-                        <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
-                          <Layers className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                          <p className="text-sm">Nenhuma categoria cadastrada</p>
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {categories.map((cat) => (
-                            <div
-                              key={cat}
-                              className="group inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition"
-                            >
-                              <span>{cat}</span>
+                      {/* Colors */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-700">Cor dos Botões</Label>
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="color"
+                            value={primaryColor}
+                            onChange={(e) => setPrimaryColor(e.target.value)}
+                            className="w-12 h-12 rounded cursor-pointer border-0 p-0"
+                          />
+                          <div className="flex-1">
+                            <div className="bg-slate-50 p-3 rounded border border-slate-100 flex gap-2 items-center">
+                              <span className="text-xs text-slate-500">Preview:</span>
                               <button
-                                onClick={() => {
-                                  if (confirm(`Deseja realmente remover a categoria "${cat}"?`)) {
-                                    handleDeleteCategory(cat);
-                                  }
-                                }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-300 rounded-full p-0.5"
-                                title="Remover categoria"
+                                className="px-4 py-1.5 rounded text-white text-xs font-bold shadow-sm"
+                                style={{ backgroundColor: primaryColor }}
                               >
-                                <X className="w-3.5 h-3.5" />
+                                Botão Exemplo
                               </button>
                             </div>
-                          ))}
+                          </div>
                         </div>
-                      )}
+                      </div>
+
+                      <Button
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        onClick={handleSaveConfig}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          'Salvar Alterações'
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {configMenu === 'whatsapp' && (
+                  <>
+                    <div className="flex items-center gap-3 mb-6">
+                      <button
+                        onClick={() => setConfigMenu('main')}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"
+                      >
+                        <ArrowLeft className="w-4 h-4 text-slate-600" />
+                      </button>
+                      <h2 className="text-xl font-bold text-slate-800">Gerar Link WhatsApp</h2>
                     </div>
 
-                    {/* Add Category Form */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                      <Label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Nova Categoria
-                      </Label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={newCategoryName}
-                          onChange={(e) => setNewCategoryName(e.target.value)}
-                          placeholder="Digite o nome da categoria..."
-                          className="flex-1 bg-white"
-                          onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
-                        />
-                        <Button
-                          onClick={handleAddCategory}
-                          disabled={!newCategoryName.trim()}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          Adicionar
-                        </Button>
+                    <div className="space-y-6">
+                      <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Switch
+                            checked={waEnabled}
+                            onCheckedChange={setWaEnabled}
+                          />
+                          <span className="text-sm font-bold text-slate-800">Ativar Link Automático</span>
+                        </div>
+
+                        {waEnabled && (
+                          <div className="space-y-4">
+                            <div>
+                              <Label className="block text-xs font-bold text-green-800 mb-1">
+                                Número do WhatsApp (DDD + Número)
+                              </Label>
+                              <Input
+                                value={waNumber}
+                                onChange={(e) => setWaNumber(e.target.value)}
+                                placeholder="Ex: 5511999999999"
+                                className="border-green-200 focus:border-green-500"
+                              />
+                              <p className="text-[10px] text-green-600 mt-1">
+                                Apenas números. Ex: 5511999998888
+                              </p>
+                            </div>
+                            <div>
+                              <Label className="block text-xs font-bold text-green-800 mb-1">
+                                Mensagem Padrão
+                              </Label>
+                              <Input
+                                value={waMessage}
+                                onChange={(e) => setWaMessage(e.target.value)}
+                                placeholder="Ex: Olá, tenho interesse no modelo"
+                                className="border-green-200 focus:border-green-500"
+                              />
+                              <p className="text-[10px] text-green-600 mt-1">
+                                Dica: Use {'{ref}'} para inserir o nome do óculos automaticamente.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        onClick={handleSaveConfig}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          'Salvar Configurações'
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {configMenu === 'categories' && (
+                  <>
+                    <div className="flex items-center gap-3 mb-6">
+                      <button
+                        onClick={() => setConfigMenu('main')}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"
+                      >
+                        <ArrowLeft className="w-4 h-4 text-slate-600" />
+                      </button>
+                      <h2 className="text-xl font-bold text-slate-800">Categorias</h2>
+                    </div>
+
+                    <div className="space-y-6">
+                      {/* Categories Display - Tag Style */}
+                      <div>
+                        <Label className="text-sm font-semibold text-slate-700 mb-3 block">
+                          Suas Categorias
+                        </Label>
+
+                        {categories.length === 0 ? (
+                          <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+                            <Layers className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                            <p className="text-sm">Nenhuma categoria cadastrada</p>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {categories.map((cat) => (
+                              <div
+                                key={cat}
+                                className="group inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition"
+                              >
+                                <span>{cat}</span>
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`Deseja realmente remover a categoria "${cat}"?`)) {
+                                      handleDeleteCategory(cat);
+                                    }
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-300 rounded-full p-0.5"
+                                  title="Remover categoria"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Add Category Form */}
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <Label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Nova Categoria
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            placeholder="Digite o nome da categoria..."
+                            className="flex-1 bg-white"
+                            onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
+                          />
+                          <Button
+                            onClick={handleAddCategory}
+                            disabled={!newCategoryName.trim()}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            Adicionar
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Info Box */}
+                      <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <p className="text-xs text-blue-800 leading-relaxed">
+                          <strong>✓ Independência Total:</strong> Suas categorias são exclusivas da sua loja.
+                          Outras lojas não podem ver, editar ou excluir suas categorias.
+                        </p>
                       </div>
                     </div>
-
-                    {/* Info Box */}
-                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                      <p className="text-xs text-blue-800 leading-relaxed">
-                        <strong>✓ Independência Total:</strong> Suas categorias são exclusivas da sua loja.
-                        Outras lojas não podem ver, editar ou excluir suas categorias.
-                      </p>
-                    </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </main>
-    </div>
+          )
+        }
+      </main >
+    </div >
   );
 }

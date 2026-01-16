@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import MasterPanel from "./pages/MasterPanel";
 import AdminPanel from "./pages/AdminPanel";
 import Vitrine from "./pages/Vitrine";
+import DirectTryOn from "./pages/DirectTryOn";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,21 +26,22 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/vitrine/:slug" element={<Vitrine />} />
-            <Route 
-              path="/master" 
+            <Route path="/provador/:glassId" element={<DirectTryOn />} />
+            <Route
+              path="/master"
               element={
                 <ProtectedRoute allowedRoles={['master']}>
                   <MasterPanel />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin" 
+            <Route
+              path="/admin"
               element={
                 <ProtectedRoute allowedRoles={['admin', 'master']}>
                   <AdminPanel />
                 </ProtectedRoute>
-              } 
+              }
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
