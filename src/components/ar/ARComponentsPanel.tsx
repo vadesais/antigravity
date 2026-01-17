@@ -1,4 +1,4 @@
-import { Upload, Image, ArrowLeft, ArrowRight, Layers } from 'lucide-react';
+import { Upload, Image, ArrowLeft, ArrowRight, Layers, Sliders } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import type { ARModel, ARPartConfig, EditingPart } from '@/hooks/useARState';
@@ -11,6 +11,9 @@ interface ARComponentsPanelProps {
   onSaveDefault: () => void;
   onClearAll: () => void;
   profileId: string;
+  autoAnchors: boolean;
+  onAutoAnchorsChange: (value: boolean) => void;
+  onScaleChange: (value: number) => void;
 }
 
 export default function ARComponentsPanel({
@@ -21,6 +24,9 @@ export default function ARComponentsPanel({
   onSaveDefault,
   onClearAll,
   profileId,
+  autoAnchors,
+  onAutoAnchorsChange,
+  onScaleChange,
 }: ARComponentsPanelProps) {
   const { toast } = useToast();
 
@@ -108,76 +114,126 @@ export default function ARComponentsPanel({
           const hasImage = !!model.parts[part.key].img;
 
           return (
-            <div
-              key={part.key}
-              onClick={() => onSelectPart(part.key)}
-              className={`p-3 rounded-xl cursor-pointer flex items-center gap-4 group border transition-all ${isActive
-                ? 'border-blue-600 bg-blue-50 shadow-sm'
-                : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm'
-                }`}
-            >
-              {/* Checkbox indicator */}
-              <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-                <div
-                  className={`w-[22px] h-[22px] rounded-md border-2 flex items-center justify-center transition-all ${isActive ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white'
-                    }`}
-                >
-                  {isActive && (
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+            <div key={part.key} className="space-y-0">
+              <div
+                onClick={() => onSelectPart(part.key)}
+                className={`p-3 rounded-xl cursor-pointer flex items-center gap-4 group border transition-all ${isActive
+                  ? 'border-blue-600 bg-blue-50 shadow-sm'
+                  : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm'
+                  }`}
+              >
+                {/* Checkbox indicator */}
+                <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className={`w-[22px] h-[22px] rounded-md border-2 flex items-center justify-center transition-all ${isActive ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white'
+                      }`}
+                  >
+                    {isActive && (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+
+                {/* Thumbnail */}
+                <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden shadow-inner">
+                  {hasImage ? (
+                    <img
+                      src={model.parts[part.key].img?.src}
+                      alt={part.label}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    part.icon
                   )}
                 </div>
-              </div>
 
-              {/* Thumbnail */}
-              <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center border border-slate-200 overflow-hidden shadow-inner">
-                {hasImage ? (
-                  <img
-                    src={model.parts[part.key].img?.src}
-                    alt={part.label}
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  part.icon
-                )}
-              </div>
+                {/* Labels */}
+                <div className="flex-1">
+                  <span
+                    className={`text-sm font-bold block transition-colors ${isActive ? 'text-blue-600' : 'text-slate-700 group-hover:text-blue-600'
+                      }`}
+                  >
+                    {part.label}
+                  </span>
+                  <span className="text-[11px] text-slate-400">{part.sublabel}</span>
+                </div>
 
-              {/* Labels */}
-              <div className="flex-1">
-                <span
-                  className={`text-sm font-bold block transition-colors ${isActive ? 'text-blue-600' : 'text-slate-700 group-hover:text-blue-600'
+                {/* Upload button */}
+                <label
+                  className={`w-[42px] h-[42px] flex items-center justify-center rounded-xl cursor-pointer transition-all border ${hasImage
+                    ? 'bg-green-50 border-green-200 text-green-600 hover:bg-green-100'
+                    : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-blue-600 hover:border-blue-600 hover:text-white'
                     }`}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  {part.label}
-                </span>
-                <span className="text-[11px] text-slate-400">{part.sublabel}</span>
+                  <Upload className="w-5 h-5" />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(e) => handleFileUpload(e, part.key)}
+                  />
+                </label>
               </div>
 
-              {/* Upload button */}
-              <label
-                className={`w-[42px] h-[42px] flex items-center justify-center rounded-xl cursor-pointer transition-all border ${hasImage
-                  ? 'bg-green-50 border-green-200 text-green-600 hover:bg-green-100'
-                  : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-blue-600 hover:border-blue-600 hover:text-white'
-                  }`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Upload className="w-5 h-5" />
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={(e) => handleFileUpload(e, part.key)}
-                />
-              </label>
+              {/* Fine Controls - Show below the card when selected */}
+              {isActive && (
+                <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-blue-600" />
+                      Ajustes Finos
+                    </h3>
+                    {part.key === 'front' && (
+                      <label className="flex items-center gap-1.5 text-[10px] text-slate-500 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="w-3 h-3 accent-blue-600 rounded"
+                          checked={autoAnchors}
+                          onChange={(e) => onAutoAnchorsChange(e.target.checked)}
+                        />
+                        Auto-Ajuste
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Scale Slider */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-medium text-slate-600">Tamanho / Escala</label>
+                      <span className="text-xs font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                        {model.parts[part.key].scale.toFixed(2)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2"
+                      step="0.01"
+                      value={model.parts[part.key].scale}
+                      onChange={(e) => onScaleChange(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer
+                        [&::-webkit-slider-thumb]:appearance-none
+                        [&::-webkit-slider-thumb]:w-3.5
+                        [&::-webkit-slider-thumb]:h-3.5
+                        [&::-webkit-slider-thumb]:rounded-full
+                        [&::-webkit-slider-thumb]:bg-blue-600
+                        [&::-webkit-slider-thumb]:cursor-pointer
+                        [&::-webkit-slider-thumb]:shadow-md"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
-    </div>
+    </div >
   );
 }

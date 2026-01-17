@@ -443,6 +443,7 @@ export default function AdminPanel() {
         buy_link: buyLink || null,
         is_custom: isCustom,
         ar_config: parsedArConfig,
+        cover_image_url: null, // Will be set by AREditor
       };
 
       if (editingGlass) {
@@ -705,6 +706,7 @@ export default function AdminPanel() {
               number: waNumber,
               message: waMessage
             }}
+            onCategoriesChange={fetchCategories}
           />
         )}
 
@@ -898,22 +900,6 @@ export default function AdminPanel() {
                         </div>
                         <ExternalLink className="w-4 h-4 text-slate-400" />
                       </button>
-
-                      <button
-                        onClick={() => setConfigMenu('categories')}
-                        className="w-full p-4 rounded-xl border border-slate-200 hover:border-orange-300 hover:bg-orange-50 transition flex items-center gap-4 group"
-                      >
-                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
-                          <Layers className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1 text-left">
-                          <h3 className="font-bold text-slate-800 group-hover:text-orange-600">
-                            Gerenciar Categorias
-                          </h3>
-                          <p className="text-xs text-slate-500">Adicionar e remover categorias personalizadas</p>
-                        </div>
-                        <ExternalLink className="w-4 h-4 text-slate-400" />
-                      </button>
                     </div>
                   </>
                 )}
@@ -1087,88 +1073,7 @@ export default function AdminPanel() {
                   </>
                 )}
 
-                {configMenu === 'categories' && (
-                  <>
-                    <div className="flex items-center gap-3 mb-6">
-                      <button
-                        onClick={() => setConfigMenu('main')}
-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"
-                      >
-                        <ArrowLeft className="w-4 h-4 text-slate-600" />
-                      </button>
-                      <h2 className="text-xl font-bold text-slate-800">Categorias</h2>
-                    </div>
 
-                    <div className="space-y-6">
-                      {/* Categories Display - Tag Style */}
-                      <div>
-                        <Label className="text-sm font-semibold text-slate-700 mb-3 block">
-                          Suas Categorias
-                        </Label>
-
-                        {categories.length === 0 ? (
-                          <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
-                            <Layers className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                            <p className="text-sm">Nenhuma categoria cadastrada</p>
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {categories.map((cat) => (
-                              <div
-                                key={cat}
-                                className="group inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-sm font-medium hover:bg-blue-200 transition"
-                              >
-                                <span>{cat}</span>
-                                <button
-                                  onClick={() => {
-                                    if (confirm(`Deseja realmente remover a categoria "${cat}"?`)) {
-                                      handleDeleteCategory(cat);
-                                    }
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-300 rounded-full p-0.5"
-                                  title="Remover categoria"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Add Category Form */}
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <Label className="block text-sm font-semibold text-slate-700 mb-2">
-                          Nova Categoria
-                        </Label>
-                        <div className="flex gap-2">
-                          <Input
-                            value={newCategoryName}
-                            onChange={(e) => setNewCategoryName(e.target.value)}
-                            placeholder="Digite o nome da categoria..."
-                            className="flex-1 bg-white"
-                            onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
-                          />
-                          <Button
-                            onClick={handleAddCategory}
-                            disabled={!newCategoryName.trim()}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            Adicionar
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Info Box */}
-                      <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                        <p className="text-xs text-blue-800 leading-relaxed">
-                          <strong>✓ Independência Total:</strong> Suas categorias são exclusivas da sua loja.
-                          Outras lojas não podem ver, editar ou excluir suas categorias.
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
             </div>
           )

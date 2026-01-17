@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Tag, Save, Loader2 } from 'lucide-react';
+import { Tag, Save, Loader2, Image as ImageIcon, Upload, X, Plus } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -36,6 +36,7 @@ interface AREditorProps {
     image_url: string;
     buy_link: string;
     ar_config: any;
+    cover_image_url: string | null;
   }) => Promise<void>;
   editingGlass?: EditingGlass | null;
   onCancel?: () => void;
@@ -45,6 +46,7 @@ interface AREditorProps {
     number: string;
     message: string;
   };
+  onCategoriesChange?: () => Promise<void>;
 }
 
 export default function AREditor({
@@ -54,7 +56,8 @@ export default function AREditor({
   editingGlass,
   onCancel,
   isSubmitting = false,
-  waConfig
+  waConfig,
+  onCategoriesChange
 }: AREditorProps) {
   const { toast } = useToast();
   const {
@@ -80,6 +83,10 @@ export default function AREditor({
   const [price, setPrice] = useState(editingGlass?.price || '');
   const [category, setCategory] = useState(editingGlass?.category || '');
   const [buyLink, setBuyLink] = useState(editingGlass?.buy_link || '');
+  const [coverImageMode, setCoverImageMode] = useState<'glasses' | 'custom'>('glasses');
+  const [customCoverImage, setCustomCoverImage] = useState<string | null>(null);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Auto-generate WhatsApp link when name changes or config is loaded
   useEffect(() => {
@@ -91,6 +98,7 @@ export default function AREditor({
       setBuyLink(link);
     }
   }, [name, waConfig, editingGlass]);
+
 
   // Apply initial AR config and load front image on mount/change
   useEffect(() => {
@@ -121,6 +129,41 @@ export default function AREditor({
       setCategory('');
       setBuyLink('');
       clearAll();
+
+      // Load default template AFTER clearing (so it overrides defaults)
+      setTimeout(() => {
+        const savedTemplate = localStorage.getItem('ar_default_template');
+        console.log('Loading template after clear:', savedTemplate);
+        if (savedTemplate) {
+          try {
+            const template = JSON.parse(savedTemplate);
+            console.log('Parsed template:', template);
+
+            // Check if old format (with image URLs) - clean it
+            if (template.front || template.left || template.right) {
+              console.log('Detected old template format with images - cleaning...');
+              localStorage.removeItem('ar_default_template');
+              toast({
+                title: 'Template antigo removido',
+                description: 'Por favor, salve o padrão novamente sem imagens.',
+                variant: 'destructive',
+              });
+              return;
+            }
+
+            // Only apply if it's the new format (params only)
+            if (template.frontParams || template.leftParams || template.rightParams) {
+              applyARConfig(template);
+              toast({
+                title: 'Template padrão carregado!',
+                description: 'Ajustes salvos foram aplicados.',
+              });
+            }
+          } catch (error) {
+            console.error('Error loading default template:', error);
+          }
+        }
+      }, 100);
     }
   }, [editingGlass, applyARConfig, updatePart, clearAll]);
 
@@ -149,7 +192,17 @@ export default function AREditor({
 
   const handleSaveDefault = useCallback(() => {
     const config = getARConfig();
-    localStorage.setItem('ar_default_template', JSON.stringify(config));
+    console.log('Full config:', config);
+    // Save only parameters, not image URLs
+    const templateConfig = {
+      frontParams: config.frontParams,
+      leftParams: config.leftParams,
+      rightParams: config.rightParams,
+      autoAnchors: config.autoAnchors,
+      // Explicitly exclude image URLs
+    };
+    console.log('Saving template (params only):', templateConfig);
+    localStorage.setItem('ar_default_template', JSON.stringify(templateConfig));
     toast({ title: 'Configuração salva como padrão!' });
   }, [getARConfig, toast]);
 
@@ -184,8 +237,59 @@ export default function AREditor({
       return;
     }
 
+    if (coverImageMode === 'custom' && !customCoverImage) {
+      toast({
+        title: 'Imagem de capa obrigatória',
+        description: 'Faça upload da imagem de capa ou selecione "Usar frente do óculos".',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const arConfig = getARConfig();
     const imageUrl = model.parts.front.remoteUrl || '';
+
+    // Determine cover image URL
+    let coverImageUrl: string | null = null;
+
+    if (coverImageMode === 'glasses') {
+      // Use the front glasses image
+      coverImageUrl = imageUrl;
+    } else if (coverImageMode === 'custom' && customCoverImage) {
+      // Upload custom cover image to Supabase Storage
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const fileName = `cover-${Date.now()}.png`;
+        const filePath = `${profileId}/${fileName}`;
+
+        // Convert base64 to blob
+        const response = await fetch(customCoverImage);
+        const blob = await response.blob();
+
+        const { data, error } = await supabase.storage
+          .from('glasses-images')
+          .upload(filePath, blob, {
+            contentType: 'image/png',
+            upsert: false,
+          });
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('glasses-images')
+          .getPublicUrl(filePath);
+
+        coverImageUrl = publicUrl;
+      } catch (error) {
+        console.error('Error uploading cover image:', error);
+        toast({
+          title: 'Erro ao enviar imagem',
+          description: 'Não foi possível fazer upload da imagem de capa.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
 
     await onSave({
       name,
@@ -194,6 +298,7 @@ export default function AREditor({
       image_url: imageUrl,
       buy_link: buyLink,
       ar_config: arConfig,
+      cover_image_url: coverImageUrl,
     });
   };
 
@@ -227,18 +332,12 @@ export default function AREditor({
           onSaveDefault={handleSaveDefault}
           onClearAll={handleClearAll}
           profileId={profileId}
+          autoAnchors={autoAnchors}
+          onAutoAnchorsChange={setAutoAnchors}
+          onScaleChange={handleScaleChange}
         />
 
-        {/* Fine Controls (shown when editing) */}
-        {editingPart && (
-          <ARFineControls
-            model={model}
-            editingPart={editingPart}
-            autoAnchors={autoAnchors}
-            onAutoAnchorsChange={setAutoAnchors}
-            onScaleChange={handleScaleChange}
-          />
-        )}
+        {/* Fine Controls removed - now integrated in ARComponentsPanel */}
 
         {/* Product Info Form */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -268,7 +367,140 @@ export default function AREditor({
                 />
               </div>
               <div>
-                <Label className="text-xs font-semibold text-slate-500">Categoria</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-xs font-semibold text-slate-500">Categoria</Label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoryManager(!showCategoryManager)}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Gerenciar
+                  </button>
+                </div>
+
+                {/* Category Tags */}
+                {showCategoryManager && (
+                  <div className="mb-3 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((cat) => (
+                        <span
+                          key={cat}
+                          className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 text-xs px-2 py-1 rounded-md"
+                        >
+                          {cat}
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const { supabase } = await import('@/integrations/supabase/client');
+                                const { error } = await supabase
+                                  .from('categories')
+                                  .delete()
+                                  .eq('store_id', profileId)
+                                  .eq('name', cat);
+
+                                if (error) throw error;
+
+                                // Update local categories list
+                                const updatedCategories = categories.filter(c => c !== cat);
+                                // Trigger parent refresh (would need callback from parent)
+                                toast({ title: 'Categoria removida!' });
+                                if (onCategoriesChange) {
+                                  await onCategoriesChange();
+                                }
+                              } catch (error: any) {
+                                toast({
+                                  title: 'Erro ao remover',
+                                  description: error.message,
+                                  variant: 'destructive',
+                                });
+                              }
+                            }}
+                            className="hover:bg-slate-200 rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Add New Category */}
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nova Categoria..."
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        className="flex-1 text-sm"
+                        onKeyPress={async (e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (!newCategoryName.trim()) return;
+
+                            try {
+                              const { supabase } = await import('@/integrations/supabase/client');
+                              const { error } = await supabase
+                                .from('categories')
+                                .insert({
+                                  store_id: profileId,
+                                  name: newCategoryName.trim(),
+                                });
+
+                              if (error) throw error;
+
+                              toast({ title: 'Categoria adicionada!' });
+                              setNewCategoryName('');
+                              if (onCategoriesChange) {
+                                await onCategoriesChange();
+                              }
+                            } catch (error: any) {
+                              toast({
+                                title: 'Erro ao adicionar',
+                                description: error.message,
+                                variant: 'destructive',
+                              });
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={async () => {
+                          if (!newCategoryName.trim()) return;
+
+                          try {
+                            const { supabase } = await import('@/integrations/supabase/client');
+                            const { error } = await supabase
+                              .from('categories')
+                              .insert({
+                                store_id: profileId,
+                                name: newCategoryName.trim(),
+                              });
+
+                            if (error) throw error;
+
+                            toast({ title: 'Categoria adicionada!' });
+                            setNewCategoryName('');
+                            if (onCategoriesChange) {
+                              await onCategoriesChange();
+                            }
+                          } catch (error: any) {
+                            toast({
+                              title: 'Erro ao adicionar',
+                              description: error.message,
+                              variant: 'destructive',
+                            });
+                          }
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Category Selector */}
                 <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Selecione" />
@@ -292,6 +524,79 @@ export default function AREditor({
                 onChange={(e) => setBuyLink(e.target.value)}
                 className="mt-1"
               />
+            </div>
+
+            {/* Cover Image Section */}
+            <div className="border-t border-slate-200 pt-4 mt-4">
+              <Label className="text-xs font-semibold text-slate-500 flex items-center gap-2 mb-3">
+                <ImageIcon className="w-4 h-4 text-blue-600" />
+                Imagem de Capa (Vitrine)
+              </Label>
+
+              <div className="space-y-3">
+                {/* Radio Options */}
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="coverImage"
+                      value="glasses"
+                      checked={coverImageMode === 'glasses'}
+                      onChange={() => setCoverImageMode('glasses')}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="text-sm text-slate-700">Usar frente do óculos</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="coverImage"
+                      value="custom"
+                      checked={coverImageMode === 'custom'}
+                      onChange={() => setCoverImageMode('custom')}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="text-sm text-slate-700">Usar outra imagem</span>
+                  </label>
+                </div>
+
+                {/* File Upload (shown when custom is selected) */}
+                {coverImageMode === 'custom' && (
+                  <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-blue-400 transition cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            setCustomCoverImage(event.target?.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="hidden"
+                      id="cover-image-upload"
+                    />
+                    <label htmlFor="cover-image-upload" className="cursor-pointer">
+                      {customCoverImage ? (
+                        <div className="space-y-2">
+                          <img src={customCoverImage} alt="Cover preview" className="max-h-32 mx-auto rounded" />
+                          <p className="text-xs text-slate-500">Clique para alterar</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Upload className="w-8 h-8 text-slate-400 mx-auto" />
+                          <p className="text-sm text-slate-600 font-medium">Clique para enviar imagem</p>
+                          <p className="text-xs text-slate-400">PNG, JPG até 5MB</p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-3 mt-2">

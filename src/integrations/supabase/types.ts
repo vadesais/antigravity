@@ -57,6 +57,7 @@ export type Database = {
           price: string | null
           store_id: string
           updated_at: string | null
+          cover_image_url: string | null
         }
         Insert: {
           active?: boolean | null
@@ -71,6 +72,7 @@ export type Database = {
           price?: string | null
           store_id: string
           updated_at?: string | null
+          cover_image_url?: string | null
         }
         Update: {
           active?: boolean | null
@@ -85,6 +87,7 @@ export type Database = {
           price?: string | null
           store_id?: string
           updated_at?: string | null
+          cover_image_url?: string | null
         }
         Relationships: [
           {
