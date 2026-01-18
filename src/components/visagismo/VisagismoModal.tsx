@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { X, Users, Sparkles, CheckCircle2 } from 'lucide-react';
-import { FaceAnalysis, VisagismoStep } from '@/types/visagismo';
+import { X, Sparkles, CheckCircle2, Glasses, Sun, ChevronRight } from 'lucide-react';
+import { FaceAnalysis, VisagismoStep, GlassType } from '@/types/visagismo';
 import VisagismoCamera from './VisagismoCamera';
 
 interface Glass {
@@ -38,12 +38,18 @@ export default function VisagismoModal({
 }: VisagismoModalProps) {
     const [step, setStep] = useState<VisagismoStep>('gender');
     const [gender, setGender] = useState<'Masculino' | 'Feminino' | 'Unissex' | null>(null);
+    const [glassType, setGlassType] = useState<GlassType | null>(null);
     const [faceAnalysis, setFaceAnalysis] = useState<FaceAnalysis | null>(null);
 
     if (!isOpen) return null;
 
     const handleGenderSelect = (selectedGender: 'Masculino' | 'Feminino' | 'Unissex') => {
         setGender(selectedGender);
+        setStep('glassType');
+    };
+
+    const handleGlassTypeSelect = (type: GlassType) => {
+        setGlassType(type);
         setStep('camera');
     };
 
@@ -53,34 +59,48 @@ export default function VisagismoModal({
     };
 
     const handleBack = () => {
-        if (step === 'camera') {
-            setStep('gender');
-        } else if (step === 'results') {
+        if (step === 'results') {
             setStep('camera');
+        } else if (step === 'camera') {
+            setStep('glassType');
+        } else if (step === 'glassType') {
+            setStep('gender');
         }
     };
 
     const handleClose = () => {
         setStep('gender');
         setGender(null);
+        setGlassType(null);
         setFaceAnalysis(null);
         onClose();
     };
 
-    // Busca inteligente de óculos baseada em gênero e formato de rosto
+    // Busca inteligente de óculos
     const getRecommendedGlasses = (): Glass[] => {
-        if (!gender || !faceAnalysis) return [];
+        if (!gender || !glassType || !faceAnalysis) return [];
 
-        // 1. Filtrar por gênero
+        // 1. Filtrar por gênero e tipo
         let filtered = glasses.filter(glass => {
             if (!glass.category) return false;
             const category = glass.category.toLowerCase();
 
-            if (gender === 'Unissex') return true;
-            if (gender === 'Masculino') return category.includes('masculino') || category.includes('unissex');
-            if (gender === 'Feminino') return category.includes('feminino') || category.includes('unissex');
+            // Filtro de gênero
+            let matchesGender = false;
+            if (gender === 'Unissex') {
+                matchesGender = true;
+            } else if (gender === 'Masculino') {
+                matchesGender = category.includes('masculino') || category.includes('unissex');
+            } else if (gender === 'Feminino') {
+                matchesGender = category.includes('feminino') || category.includes('unissex');
+            }
 
-            return false;
+            // Filtro de tipo
+            const matchesType = glassType === 'grau'
+                ? category.includes('grau')
+                : category.includes('sol');
+
+            return matchesGender && matchesType;
         });
 
         // 2. Obter estilos recomendados para o formato de rosto
@@ -92,14 +112,12 @@ export default function VisagismoModal({
             const glassName = glass.name.toLowerCase();
             const glassCategory = (glass.category || '').toLowerCase();
 
-            // Verificar se o nome ou categoria contém algum estilo recomendado
             recommendedStyles.forEach(style => {
                 if (glassName.includes(style) || glassCategory.includes(style)) {
                     score += 10;
                 }
             });
 
-            // Bonus para óculos com AR config (mais completos)
             if (glass.ar_config) {
                 score += 5;
             }
@@ -113,7 +131,6 @@ export default function VisagismoModal({
             .slice(0, 6)
             .map(item => item.glass);
 
-        // 5. Se não houver óculos com score alto, retornar os primeiros 6 filtrados por gênero
         if (topGlasses.length === 0) {
             return filtered.slice(0, 6);
         }
@@ -132,155 +149,270 @@ export default function VisagismoModal({
             />
 
             {/* Modal */}
-            <div className="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-200">
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                            <Sparkles className="w-6 h-6 text-blue-600" />
-                            Visagismo Inteligente
-                        </h2>
-                        <p className="text-sm text-slate-500 mt-1">
-                            Descubra o óculos ideal para você
-                        </p>
-                    </div>
-                    <button
-                        onClick={handleClose}
-                        className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 transition"
-                    >
-                        <X className="w-6 h-6 text-slate-600" />
-                    </button>
-                </div>
+            <div className={`relative bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden ${step === 'camera' || step === 'results' ? 'w-full max-w-4xl max-h-[90vh]' : 'w-full max-w-md'
+                }`}>
 
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
-                    {/* Step 1: Gender Selection */}
-                    {step === 'gender' && (
-                        <div className="max-w-2xl mx-auto text-center">
+                {/* Step 1: Gender Selection */}
+                {step === 'gender' && (
+                    <div className="p-8">
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-6">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Sparkles className="w-5 h-5 text-slate-700" />
+                                    <h2 className="text-xl font-bold text-slate-900">
+                                        Visagismo Inteligente
+                                    </h2>
+                                </div>
+                                <p className="text-sm text-slate-500">
+                                    Descubra o óculos ideal para você
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleClose}
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition"
+                            >
+                                <X className="w-5 h-5 text-slate-600" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div>
                             <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                                Para quem são os óculos?
+                                Qual sua preferência?
                             </h3>
-                            <p className="text-slate-600 mb-8">
-                                Selecione para personalizar as recomendações
+                            <p className="text-sm text-slate-500 mb-6">
+                                Selecione para quem são os óculos.
                             </p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {(['Masculino', 'Feminino', 'Unissex'] as const).map((option) => (
+                            <div className="space-y-3">
+                                {(['Masculino', 'Feminino'] as const).map((option) => (
                                     <button
                                         key={option}
                                         onClick={() => handleGenderSelect(option)}
-                                        className="p-6 border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition group"
+                                        className="w-full p-4 border-2 border-slate-200 rounded-2xl flex items-center justify-between hover:border-slate-900 hover:bg-slate-50 transition-all group"
                                     >
-                                        <Users className="w-12 h-12 mx-auto mb-3 text-slate-400 group-hover:text-blue-600 transition" />
-                                        <span className="text-lg font-semibold text-slate-700 group-hover:text-blue-600 transition">
-                                            {option}
+                                        <span className="text-base font-bold text-slate-900">
+                                            Óculos {option}
                                         </span>
+                                        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition" />
                                     </button>
                                 ))}
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {/* Step 2: Camera */}
-                    {step === 'camera' && (
-                        <div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-4 text-center">
-                                Análise Facial
-                            </h3>
-                            <VisagismoCamera
-                                onCapture={handleCaptureComplete}
-                                onBack={handleBack}
-                            />
-                        </div>
-                    )}
-
-                    {/* Step 3: Results */}
-                    {step === 'results' && faceAnalysis && (
-                        <div className="max-w-4xl mx-auto">
-                            {/* Face Analysis Result */}
-                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-8 border border-blue-100">
-                                <div className="flex items-start gap-4">
-                                    <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                                        <CheckCircle2 className="w-8 h-8 text-white" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <h4 className="text-xl font-bold text-slate-900">
-                                                Formato: {faceAnalysis.shape}
-                                            </h4>
-                                            <span className="px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full">
-                                                Detectado
-                                            </span>
-                                        </div>
-                                        <p className="text-slate-700 mb-3">{faceAnalysis.description}</p>
-                                        <div className="bg-white/50 rounded-lg p-3 border border-blue-200">
-                                            <p className="text-sm text-slate-700">
-                                                <strong className="text-blue-700">💡 Recomendação:</strong> {faceAnalysis.recommendedStyle}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Recommended Glasses */}
+                {/* Step 2: Glass Type Selection */}
+                {step === 'glassType' && (
+                    <div className="p-8">
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-6">
                             <div>
-                                <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                    <Sparkles className="w-5 h-5 text-blue-600" />
-                                    Óculos Perfeitos para Você ({recommendedGlasses.length})
-                                </h4>
-
-                                {recommendedGlasses.length === 0 ? (
-                                    <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-lg">
-                                        <p className="mb-2">Nenhum óculos encontrado para {gender}.</p>
-                                        <p className="text-sm">Tente selecionar "Unissex" para ver mais opções.</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                        {recommendedGlasses.map((glass) => (
-                                            <div
-                                                key={glass.id}
-                                                className="bg-white border-2 border-slate-200 rounded-lg overflow-hidden hover:border-blue-500 hover:shadow-lg transition cursor-pointer group"
-                                                onClick={() => {
-                                                    onSelectGlass(glass);
-                                                    handleClose();
-                                                }}
-                                            >
-                                                <div className="aspect-square bg-slate-50 flex items-center justify-center p-4 relative">
-                                                    <img
-                                                        src={glass.cover_image_url || glass.image_url}
-                                                        alt={glass.name}
-                                                        className="max-w-full max-h-full object-contain"
-                                                    />
-                                                    <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition">
-                                                        Ideal
-                                                    </div>
-                                                </div>
-                                                <div className="p-3">
-                                                    <p className="text-sm font-medium text-slate-900 truncate mb-2">
-                                                        {glass.name}
-                                                    </p>
-                                                    <button className="w-full px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded hover:bg-blue-700 transition">
-                                                        Experimentar Agora
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Sparkles className="w-5 h-5 text-slate-700" />
+                                    <h2 className="text-xl font-bold text-slate-900">
+                                        Visagismo Inteligente
+                                    </h2>
+                                </div>
+                                <p className="text-sm text-slate-500">
+                                    Descubra o óculos ideal para você
+                                </p>
                             </div>
+                            <button
+                                onClick={handleClose}
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition"
+                            >
+                                <X className="w-5 h-5 text-slate-600" />
+                            </button>
+                        </div>
 
-                            {/* Back button */}
-                            <div className="mt-6 text-center">
+                        {/* Content */}
+                        <div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-2">
+                                O que você procura?
+                            </h3>
+                            <p className="text-sm text-slate-500 mb-6">
+                                Filtraremos as melhores opções.
+                            </p>
+
+                            <div className="space-y-3">
                                 <button
-                                    onClick={handleBack}
-                                    className="px-6 py-2 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition"
+                                    onClick={() => handleGlassTypeSelect('grau')}
+                                    className="w-full p-4 border-2 border-slate-200 rounded-2xl flex items-center justify-between hover:border-slate-900 hover:bg-slate-50 transition-all group"
                                 >
-                                    Analisar Novamente
+                                    <div className="flex items-center gap-3">
+                                        <Glasses className="w-6 h-6 text-slate-700" />
+                                        <span className="text-base font-bold text-slate-900">
+                                            Óculos de Grau
+                                        </span>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition" />
+                                </button>
+
+                                <button
+                                    onClick={() => handleGlassTypeSelect('sol')}
+                                    className="w-full p-4 border-2 border-slate-200 rounded-2xl flex items-center justify-between hover:border-slate-900 hover:bg-slate-50 transition-all group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Sun className="w-6 h-6 text-slate-700" />
+                                        <span className="text-base font-bold text-slate-900">
+                                            Óculos de Sol
+                                        </span>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition" />
                                 </button>
                             </div>
+
+                            <button
+                                onClick={handleBack}
+                                className="w-full mt-6 text-sm text-slate-500 hover:text-slate-700 transition"
+                            >
+                                Voltar
+                            </button>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
+
+                {/* Step 3: Camera */}
+                {step === 'camera' && (
+                    <div className="p-8">
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-6">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Sparkles className="w-5 h-5 text-slate-700" />
+                                    <h2 className="text-xl font-bold text-slate-900">
+                                        Visagismo Inteligente
+                                    </h2>
+                                </div>
+                                <p className="text-sm text-slate-500">
+                                    Descubra o óculos ideal para você
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleClose}
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition"
+                            >
+                                <X className="w-5 h-5 text-slate-600" />
+                            </button>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-2xl font-bold text-slate-900 mb-6 text-center">
+                            Posicione seu rosto
+                        </h3>
+
+                        {/* Camera Component */}
+                        <VisagismoCamera
+                            onCapture={handleCaptureComplete}
+                            onBack={handleClose}
+                        />
+
+                        <button
+                            onClick={handleBack}
+                            className="w-full mt-6 text-sm text-slate-500 hover:text-slate-700 transition"
+                        >
+                            Voltar
+                        </button>
+                    </div>
+                )}
+
+                {/* Step 4: Results */}
+                {step === 'results' && faceAnalysis && (
+                    <div className="p-8 overflow-y-auto max-h-[90vh]">
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-6">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Sparkles className="w-5 h-5 text-slate-700" />
+                                    <h2 className="text-xl font-bold text-slate-900">
+                                        Visagismo Inteligente
+                                    </h2>
+                                </div>
+                                <p className="text-sm text-slate-500">
+                                    Descubra o óculos ideal para você
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleClose}
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition"
+                            >
+                                <X className="w-5 h-5 text-slate-600" />
+                            </button>
+                        </div>
+
+                        {/* Face Analysis */}
+                        <div className="bg-blue-50 rounded-2xl p-5 mb-6">
+                            <div className="flex items-start gap-3">
+                                <CheckCircle2 className="w-10 h-10 text-blue-600 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-lg font-bold text-slate-900 mb-1">
+                                        Formato: {faceAnalysis.shape}
+                                    </h3>
+                                    <p className="text-xs text-slate-600 mb-2">
+                                        {faceAnalysis.description}
+                                    </p>
+                                    <p className="text-xs text-slate-600">
+                                        <strong className="text-blue-700">Recomendação:</strong> {faceAnalysis.recommendedStyle}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Recommended Glasses */}
+                        <div>
+                            <h4 className="text-base font-bold text-slate-900 mb-4">
+                                Óculos Perfeitos para Você ({recommendedGlasses.length})
+                            </h4>
+
+                            {recommendedGlasses.length === 0 ? (
+                                <div className="text-center py-12 text-slate-500 bg-slate-50 rounded-2xl">
+                                    <p className="text-sm">Nenhum óculos encontrado com os filtros selecionados.</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    {recommendedGlasses.map((glass) => (
+                                        <div
+                                            key={glass.id}
+                                            className="bg-white border-2 border-slate-200 rounded-2xl overflow-hidden hover:border-slate-900 hover:shadow-lg transition-all cursor-pointer group"
+                                            onClick={() => {
+                                                onSelectGlass(glass);
+                                                handleClose();
+                                            }}
+                                        >
+                                            <div className="aspect-square bg-slate-50 flex items-center justify-center p-4">
+                                                <img
+                                                    src={glass.cover_image_url || glass.image_url}
+                                                    alt={glass.name}
+                                                    className="max-w-full max-h-full object-contain"
+                                                />
+                                            </div>
+                                            <div className="p-3">
+                                                <p className="text-xs font-semibold text-slate-900 truncate mb-2">
+                                                    {glass.name}
+                                                </p>
+                                                <button className="w-full px-3 py-2.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition">
+                                                    Experimentar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Back button */}
+                        <div className="mt-6 text-center">
+                            <button
+                                onClick={handleBack}
+                                className="text-sm text-slate-500 hover:text-slate-700 transition"
+                            >
+                                Analisar Novamente
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

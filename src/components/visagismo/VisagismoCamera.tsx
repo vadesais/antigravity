@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
+import { Camera, Loader2, Sparkles } from 'lucide-react';
 import { FaceAnalysis } from '@/types/visagismo';
 import { analyzeFaceShape } from '@/utils/faceAnalyzer';
 
@@ -311,7 +311,7 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
-      <div className="relative w-full max-w-2xl aspect-video bg-slate-900 rounded-lg overflow-hidden">
+      <div className="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden">
         {/* Video */}
         <video
           ref={videoRef}
@@ -366,7 +366,7 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
               }}
               className="px-4 py-2 bg-white text-slate-900 rounded hover:bg-slate-100 transition"
             >
-              Voltar
+              Fechar
             </button>
           </div>
         )}
@@ -374,31 +374,21 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
 
       {/* Instructions */}
       {cameraReady && !error && !isAnalyzing && (
-        <div className="text-center w-full max-w-2xl">
-          <p className="text-sm text-slate-600 mb-4">
+        <div className="text-center w-full">
+          <p className="text-sm text-slate-600 mb-6">
             {faceDetected
               ? 'Perfeito! Seu rosto está posicionado corretamente.'
               : 'Posicione seu rosto no centro da câmera'}
           </p>
 
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={onBack}
-              className="px-4 py-2 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Voltar
-            </button>
-
-            <button
-              onClick={handleCapture}
-              disabled={!faceDetected || isAnalyzing}
-              className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Camera className="w-4 h-4" />
-              Capturar
-            </button>
-          </div>
+          <button
+            onClick={handleCapture}
+            disabled={!faceDetected || isAnalyzing}
+            className="px-8 py-3.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
+          >
+            <Sparkles className="w-5 h-5" />
+            Analisar
+          </button>
         </div>
       )}
     </div>

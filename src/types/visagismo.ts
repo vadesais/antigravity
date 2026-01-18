@@ -9,9 +9,12 @@ export interface FaceAnalysis {
     };
 }
 
+export type GlassType = 'grau' | 'sol';
+
 export interface VisagismoData {
     gender: 'Masculino' | 'Feminino' | 'Unissex' | null;
+    glassType: GlassType | null;
     faceAnalysis: FaceAnalysis | null;
 }
 
-export type VisagismoStep = 'gender' | 'camera' | 'results';
+export type VisagismoStep = 'gender' | 'glassType' | 'camera' | 'results';
