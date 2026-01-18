@@ -2,8 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Camera, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import { FaceAnalysis } from '@/types/visagismo';
 import { analyzeFaceShape } from '@/utils/faceAnalyzer';
-import { FaceMesh } from '@mediapipe/face_mesh';
-import { Camera as MediaPipeCamera } from '@mediapipe/camera_utils';
+
+// MediaPipe FaceMesh types
+declare global {
+  interface Window {
+    FaceMesh: any;
+  }
+}
 
 interface VisagismoCameraProps {
   onCapture: (analysis: FaceAnalysis) => void;
@@ -13,63 +18,125 @@ interface VisagismoCameraProps {
 export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const faceMeshRef = useRef<any>(null);
+  const animationFrameRef = useRef<number | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [faceMeshModel, setFaceMeshModel] = useState<FaceMesh | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [lastLandmarks, setLastLandmarks] = useState<any>(null);
   const [faceDetected, setFaceDetected] = useState(false);
 
   useEffect(() => {
-    initializeMediaPipe();
+    initializeCamera();
     return () => {
-      // Cleanup
-      if (videoRef.current && videoRef.current.srcObject) {
-        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-        tracks.forEach(track => track.stop());
-      }
+      cleanup();
     };
   }, []);
 
-  const initializeMediaPipe = async () => {
+  const cleanup = () => {
+    // Stop animation loop
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    // Stop video stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+
+    // Close FaceMesh
+    if (faceMeshRef.current) {
+      faceMeshRef.current.close();
+    }
+  };
+
+  const initializeCamera = async () => {
     try {
-      const faceMesh = new FaceMesh({
-        locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-        },
-      });
+      // Initialize MediaPipe FaceMesh
+      await initializeFaceMesh();
 
-      faceMesh.setOptions({
-        maxNumFaces: 1,
-        refineLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5,
-      });
-
-      faceMesh.onResults(onResults);
-      setFaceMeshModel(faceMesh);
-
-      // Initialize camera
-      if (videoRef.current) {
-        const camera = new MediaPipeCamera(videoRef.current, {
-          onFrame: async () => {
-            if (videoRef.current && faceMesh) {
-              await faceMesh.send({ image: videoRef.current });
-            }
-          },
-          width: 640,
-          height: 480,
-        });
-        await camera.start();
-        setCameraReady(true);
-        setIsLoading(false);
-      }
+      // Start video stream
+      await startVideo();
     } catch (err) {
-      console.error('Erro ao inicializar MediaPipe:', err);
+      console.error('Erro ao inicializar câmera:', err);
       setError('Não foi possível acessar a câmera. Verifique as permissões.');
       setIsLoading(false);
     }
+  };
+
+  const initializeFaceMesh = async () => {
+    // Load MediaPipe FaceMesh script
+    if (!window.FaceMesh) {
+      await new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load FaceMesh'));
+        document.head.appendChild(script);
+      });
+    }
+
+    const faceMesh = new window.FaceMesh({
+      locateFile: (file: string) => {
+        return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+      },
+    });
+
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5,
+    });
+
+    faceMesh.onResults(onResults);
+    faceMeshRef.current = faceMesh;
+  };
+
+  const startVideo = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: 640, height: 480 },
+      });
+
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+
+        await new Promise<void>((resolve) => {
+          if (videoRef.current!.readyState >= 2) {
+            resolve();
+          } else {
+            videoRef.current!.onloadeddata = () => resolve();
+          }
+        });
+
+        await videoRef.current.play();
+
+        if (canvasRef.current && videoRef.current) {
+          canvasRef.current.width = videoRef.current.videoWidth;
+          canvasRef.current.height = videoRef.current.videoHeight;
+        }
+
+        setCameraReady(true);
+        setIsLoading(false);
+        loop();
+      }
+    } catch (e) {
+      console.error('Erro ao acessar câmera:', e);
+      setError('Não foi possível acessar a câmera. Verifique as permissões.');
+      setIsLoading(false);
+    }
+  };
+
+  const loop = async () => {
+    if (!videoRef.current || !faceMeshRef.current) return;
+    await faceMeshRef.current.send({ image: videoRef.current });
+    animationFrameRef.current = requestAnimationFrame(loop);
   };
 
   const onResults = (results: any) => {
@@ -78,9 +145,6 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -126,7 +190,7 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
       ];
 
       // Draw face contour (clean green outline)
-      ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)'; // Green-500 with transparency
+      ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       faceContour.forEach((idx, i) => {
@@ -247,9 +311,9 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
-      < div className="relative w-full max-w-2xl aspect-video bg-slate-900 rounded-lg overflow-hidden" >
+      <div className="relative w-full max-w-2xl aspect-video bg-slate-900 rounded-lg overflow-hidden">
         {/* Video */}
-        < video
+        <video
           ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
           playsInline
@@ -265,88 +329,78 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
         />
 
         {/* Face detection indicator */}
-        {
-          cameraReady && !isAnalyzing && (
-            <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-2 rounded-full">
-              <div className={`w-2 h-2 rounded-full ${faceDetected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-              <span className="text-white text-xs font-medium">
-                {faceDetected ? 'Rosto detectado' : 'Procurando rosto...'}
-              </span>
-            </div>
-          )
-        }
+        {cameraReady && !isAnalyzing && (
+          <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-2 rounded-full">
+            <div className={`w-2 h-2 rounded-full ${faceDetected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+            <span className="text-white text-xs font-medium">
+              {faceDetected ? 'Rosto detectado' : 'Procurando rosto...'}
+            </span>
+          </div>
+        )}
 
         {/* Loading overlay */}
-        {
-          isLoading && (
-            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white">
-              <Loader2 className="w-12 h-12 animate-spin mb-4" />
-              <p className="text-sm">Inicializando câmera...</p>
-            </div>
-          )
-        }
+        {isLoading && (
+          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white">
+            <Loader2 className="w-12 h-12 animate-spin mb-4" />
+            <p className="text-sm">Inicializando câmera...</p>
+          </div>
+        )}
 
         {/* Analyzing overlay */}
-        {
-          isAnalyzing && (
-            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white">
-              <Sparkles className="w-12 h-12 animate-pulse mb-4 text-blue-400" />
-              <p className="text-lg font-semibold mb-2">Analisando seu rosto...</p>
-              <p className="text-sm text-slate-300">Identificando formato e proporções</p>
-            </div>
-          )
-        }
+        {isAnalyzing && (
+          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white">
+            <Sparkles className="w-12 h-12 animate-pulse mb-4 text-blue-400" />
+            <p className="text-lg font-semibold mb-2">Analisando seu rosto...</p>
+            <p className="text-sm text-slate-300">Identificando formato e proporções</p>
+          </div>
+        )}
 
         {/* Error overlay */}
-        {
-          error && !isAnalyzing && (
-            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white p-6 text-center">
-              <p className="text-sm mb-4">{error}</p>
-              <button
-                onClick={() => {
-                  setError(null);
-                  onBack();
-                }}
-                className="px-4 py-2 bg-white text-slate-900 rounded hover:bg-slate-100 transition"
-              >
-                Voltar
-              </button>
-            </div>
-          )
-        }
-      </div >
+        {error && !isAnalyzing && (
+          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white p-6 text-center">
+            <p className="text-sm mb-4">{error}</p>
+            <button
+              onClick={() => {
+                setError(null);
+                onBack();
+              }}
+              className="px-4 py-2 bg-white text-slate-900 rounded hover:bg-slate-100 transition"
+            >
+              Voltar
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Instructions */}
-      {
-        cameraReady && !error && !isAnalyzing && (
-          <div className="text-center w-full max-w-2xl">
-            <p className="text-sm text-slate-600 mb-4">
-              {faceDetected
-                ? 'Perfeito! Seu rosto está posicionado corretamente.'
-                : 'Posicione seu rosto no centro da câmera'}
-            </p>
+      {cameraReady && !error && !isAnalyzing && (
+        <div className="text-center w-full max-w-2xl">
+          <p className="text-sm text-slate-600 mb-4">
+            {faceDetected
+              ? 'Perfeito! Seu rosto está posicionado corretamente.'
+              : 'Posicione seu rosto no centro da câmera'}
+          </p>
 
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={onBack}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Voltar
-              </button>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={onBack}
+              className="px-4 py-2 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Voltar
+            </button>
 
-              <button
-                onClick={handleCapture}
-                disabled={!faceDetected || isAnalyzing}
-                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Camera className="w-4 h-4" />
-                Capturar
-              </button>
-            </div>
+            <button
+              onClick={handleCapture}
+              disabled={!faceDetected || isAnalyzing}
+              className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Camera className="w-4 h-4" />
+              Capturar
+            </button>
           </div>
-        )
-      }
-    </div >
+        </div>
+      )}
+    </div>
   );
 }
