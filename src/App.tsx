@@ -11,6 +11,7 @@ import MasterPanel from "./pages/MasterPanel";
 import AdminPanel from "./pages/AdminPanel";
 import Vitrine from "./pages/Vitrine";
 import DirectTryOn from "./pages/DirectTryOn";
+import ModelCreationPage from "./pages/ModelCreationPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['admin', 'master']}>
                   <AdminPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/model-creation"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'master']}>
+                  <ModelCreationPage />
                 </ProtectedRoute>
               }
             />
