@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('role')
         .eq('user_id', userId)
         .single();
-      
+
       if (roleData) {
         setRole(roleData.role as AppRole);
       } else {
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('id')
         .eq('user_id', userId)
         .single();
-      
+
       if (profileData) {
         setProfileId(profileData.id);
       }
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         // Defer role fetching with setTimeout to avoid deadlock
         if (session?.user) {
           setTimeout(() => {
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setRole(null);
           setProfileId(null);
         }
-        
+
         setLoading(false);
       }
     );
@@ -78,11 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         fetchUserRole(session.user.id);
       }
-      
+
       setLoading(false);
     });
 
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, storeName?: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -122,15 +122,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      loading, 
-      role, 
+    <AuthContext.Provider value={{
+      user,
+      session,
+      loading,
+      role,
       profileId,
-      signIn, 
-      signUp, 
-      signOut 
+      signIn,
+      signUp,
+      signOut
     }}>
       {children}
     </AuthContext.Provider>

@@ -20,9 +20,7 @@ export default function AIConfig({ config, onChange, onGenerate, disabled }: AIC
             <h2 className="text-2xl font-bold text-slate-900 mb-2">
                 Configuração do Modelo IA
             </h2>
-            <p className="text-sm text-slate-600 mb-6">
-                Descreva o modelo que você deseja gerar
-            </p>
+
 
             <div className="space-y-6">
                 {/* Descrição do Modelo */}
@@ -37,9 +35,7 @@ export default function AIConfig({ config, onChange, onGenerate, disabled }: AIC
                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none resize-none"
                         rows={4}
                     />
-                    <p className="text-xs text-slate-500 mt-2">
-                        Seja específico sobre características faciais, cabelo, pele, etc.
-                    </p>
+
                 </div>
 
                 {/* Ambiente / Cenário */}
@@ -54,18 +50,16 @@ export default function AIConfig({ config, onChange, onGenerate, disabled }: AIC
                         className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none resize-none"
                         rows={3}
                     />
-                    <p className="text-xs text-slate-500 mt-2">
-                        Descreva o ambiente, iluminação e fundo desejado
-                    </p>
+
                 </div>
 
                 {/* Botão Gerar */}
                 <button
                     onClick={onGenerate}
                     disabled={disabled || !isValid}
-                    className="w-full px-8 py-4 bg-slate-900 text-white text-base font-bold rounded-xl hover:bg-slate-800 transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-bold rounded-2xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-lg"
                 >
-                    <Sparkles className="w-5 h-5" />
+                    <Sparkles className="w-6 h-6" />
                     Gerar Modelo
                 </button>
             </div>

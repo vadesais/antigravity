@@ -28,8 +28,8 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showLoggedInOptions, setShowLoggedInOptions] = useState(false);
-  
+  const [showLoggedInOptions, setShowLoggedInOptions] = useState(false); // Can keep this for regular users or specific cases
+
   const { signIn, signUp, signOut, user, role, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,14 +40,15 @@ export default function Auth() {
 
   useEffect(() => {
     if (!loading && user && role) {
-      // If user came from vitrine, show options instead of auto-redirect
-      if (fromVitrine) {
-        setShowLoggedInOptions(true);
+      // Auto-redirect based on role, skipping the "already logged in" screen
+      if (role === 'master') {
+        navigate('/master');
+      } else if (role === 'admin') {
+        navigate('/admin');
       } else {
-        if (role === 'master') {
-          navigate('/master');
-        } else if (role === 'admin') {
-          navigate('/admin');
+        // Only for regular users we might check fromVitrine or just go home
+        if (fromVitrine) {
+          setShowLoggedInOptions(true); // Or navigate(-1)
         } else {
           navigate('/');
         }
@@ -73,7 +74,7 @@ export default function Auth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    
+
     try {
       loginSchema.parse({ email, password });
     } catch (err) {
@@ -96,8 +97,8 @@ export default function Auth() {
     if (error) {
       toast({
         title: 'Erro ao entrar',
-        description: error.message === 'Invalid login credentials' 
-          ? 'Email ou senha incorretos' 
+        description: error.message === 'Invalid login credentials'
+          ? 'Email ou senha incorretos'
           : error.message,
         variant: 'destructive',
       });
@@ -107,7 +108,7 @@ export default function Auth() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    
+
     try {
       signupSchema.parse({ email, password, storeName });
     } catch (err) {
@@ -173,20 +174,20 @@ export default function Auth() {
               </CardDescription>
             </div>
           </CardHeader>
-          
+
           <CardContent className="space-y-4">
             <Button onClick={handleGoToPanel} className="w-full" size="lg">
               <LogIn className="mr-2 h-4 w-4" />
               Ir para o painel {role === 'master' ? 'Master' : 'Admin'}
             </Button>
-            
+
             <Button onClick={handleLogoutAndStay} variant="outline" className="w-full" size="lg">
               Sair e fazer login com outra conta
             </Button>
-            
-            <Button 
-              onClick={() => navigate(-1)} 
-              variant="ghost" 
+
+            <Button
+              onClick={() => navigate(-1)}
+              variant="ghost"
               className="w-full"
             >
               Voltar para a vitrine
@@ -211,16 +212,16 @@ export default function Auth() {
             </CardDescription>
           </div>
         </CardHeader>
-        
+
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="login">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Cadastrar</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
+              <form onSubmit={handleLogin} className="space-y-4" translate="no" autoComplete="off">
                 <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>
                   <Input
@@ -235,7 +236,7 @@ export default function Auth() {
                     <p className="text-sm text-destructive">{errors.email}</p>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Senha</Label>
                   <div className="relative">
@@ -259,20 +260,20 @@ export default function Auth() {
                     <p className="text-sm text-destructive">{errors.password}</p>
                   )}
                 </div>
-                
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
-                    <>
+                    <span className="flex items-center">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Entrando...
-                    </>
+                    </span>
                   ) : (
-                    'Entrar'
+                    <span>Entrar</span>
                   )}
                 </Button>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
@@ -289,7 +290,7 @@ export default function Auth() {
                     <p className="text-sm text-destructive">{errors.storeName}</p>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input
@@ -304,7 +305,7 @@ export default function Auth() {
                     <p className="text-sm text-destructive">{errors.email}</p>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Senha</Label>
                   <div className="relative">
@@ -328,7 +329,7 @@ export default function Auth() {
                     <p className="text-sm text-destructive">{errors.password}</p>
                   )}
                 </div>
-                
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? (
                     <>
@@ -339,7 +340,7 @@ export default function Auth() {
                     'Criar conta'
                   )}
                 </Button>
-                
+
                 <p className="text-xs text-center text-muted-foreground">
                   Após o cadastro, aguarde aprovação do administrador.
                 </p>

@@ -1,8 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const GEMINI_API_KEY = 'AIzaSyD41-6G4OsmAYf4gzshEALaqwyEPAWeGRg';
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent';
+
+if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is not set in environment variables');
+}
 
 const PROMPTS = {
     singleImage: {
@@ -11,7 +15,8 @@ The generated person's face MUST match this description: {MODEL_DESC}.
 The person must be wearing EXACTLY the glasses provided in the image (frames, lens shape, color).
 The glasses must be positioned correctly on the nose bridge and ears.
 The scenario is: {SCENARIO_DESC}.
-The image must have a vertical portrait aspect ratio (3:4).
+The image MUST vary strictly adhere to the aspect ratio 4:5 (1080x1350).
+The composition must be a classic portrait that fits perfectly in a 4:5 frame without being too wide.
 Ensure high fashion photography quality, sharp focus on the face and glasses.
 Output ONLY one single image.`
     },
@@ -23,9 +28,11 @@ DO NOT change the person's identity. The person in the output must look exactly 
 The only allowed change is the addition of the glasses on the face.
 The glasses must fit naturally on the nose bridge.
 {SCENARIO_INSTRUCTION}
-The output image should maintain the original aspect ratio or be a vertical portrait.
+The output image MUST be a PORTRAIT with aspect ratio 4:5 (1080x1350).
+If the input "Model Image" is landscape/wide, you MUST CROP IT to a vertical 4:5 format centered on the face.
+DO NOT generate wide images. The output MUST be taller than it is wide.
 Output ONLY one single image.`,
-        keepScenario: `Preserve the exact original background and lighting of the "Model Image".`,
+        keepScenario: `Preserve the original background as much as possible, but CROP the image to fill the 4:5 vertical frame. Do NOT keep the original aspect ratio if it is not 4:5.`,
         newScenario: `Change the background to: {SCENARIO_DESC} (but keep the face lighting natural).`
     }
 };
@@ -55,6 +62,12 @@ serve(async (req) => {
             { global: { headers: { Authorization: authHeader } } }
         );
 
+        // Create Admin client for DB operations ignoring RLS
+        const supabaseAdmin = createClient(
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        );
+
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) throw new Error('Unauthorized');
 
@@ -68,8 +81,8 @@ serve(async (req) => {
         if (profileError || !profile) throw new Error('Profile not found');
         if (!profile.allow_model_creation) throw new Error('Module not enabled for this profile');
 
-        // 3. Verificar limites
-        const { data: limits, error: limitsError } = await supabase
+        // 3. Verificar limites (Using Admin to ensure we can read)
+        const { data: limits, error: limitsError } = await supabaseAdmin
             .from('model_generation_limits')
             .select('*')
             .eq('profile_id', profile.id)
@@ -77,7 +90,7 @@ serve(async (req) => {
 
         if (limitsError) {
             // Criar limites se não existir
-            const { data: newLimits } = await supabase
+            const { data: newLimits } = await supabaseAdmin
                 .from('model_generation_limits')
                 .insert({ profile_id: profile.id })
                 .select()
@@ -110,18 +123,10 @@ serve(async (req) => {
 
         if (genError || !generation) throw new Error('Failed to create generation record');
 
-        // 5. Incrementar contador
-        await supabase
-            .from('model_generation_limits')
-            .update({
-                daily_count: (limits?.daily_count || 0) + 1,
-                monthly_count: (limits?.monthly_count || 0) + 1,
-                updated_at: new Date().toISOString()
-            })
-            .eq('profile_id', profile.id);
+        // 5. Incrementar contador movido para processWithGemini (após sucesso)
 
         // 6. Processar com Gemini (assíncrono)
-        processWithGemini(generation.id, mode, glassesImageUrl, config, supabase);
+        processWithGemini(generation.id, mode, glassesImageUrl, config, supabaseAdmin);
 
         return new Response(
             JSON.stringify({
@@ -155,12 +160,20 @@ serve(async (req) => {
     }
 });
 
+interface GenerateConfig {
+    modelDescription?: string;
+    scenarioDescription?: string;
+    userPhotoUrl?: string;
+    keepBackground?: boolean;
+    profileId?: string;
+}
+
 async function processWithGemini(
     generationId: string,
     mode: string,
     glassesImageUrl: string,
-    config: any,
-    supabase: any
+    config: GenerateConfig,
+    supabase: SupabaseClient
 ) {
     try {
         // Baixar imagem dos óculos
@@ -169,7 +182,7 @@ async function processWithGemini(
         const glassesBase64 = await blobToBase64(glassesBlob);
 
         let prompt: string;
-        let images: any[] = [];
+        let images: Record<string, unknown>[] = [];
 
         if (mode === 'ai') {
             // Modo IA: Gerar modelo artificial
@@ -186,6 +199,8 @@ async function processWithGemini(
 
         } else {
             // Modo Foto: Usar foto do usuário
+            if (!config.userPhotoUrl) throw new Error('Foto do usuário obrigatória para este modo');
+
             const userPhotoResponse = await fetch(config.userPhotoUrl);
             const userPhotoBlob = await userPhotoResponse.blob();
             const userPhotoBase64 = await blobToBase64(userPhotoBlob);
@@ -276,6 +291,25 @@ async function processWithGemini(
                 completed_at: new Date().toISOString()
             })
             .eq('id', generationId);
+
+        // Incrementar contador após sucesso
+        // Primeiro buscar limites atuais para garantir precisão
+        const { data: currentLimits } = await supabase
+            .from('model_generation_limits')
+            .select('*')
+            .eq('profile_id', config.profileId)
+            .single();
+
+        if (currentLimits) {
+            await supabase
+                .from('model_generation_limits')
+                .update({
+                    daily_count: (currentLimits.daily_count || 0) + 1,
+                    monthly_count: (currentLimits.monthly_count || 0) + 1,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('profile_id', config.profileId);
+        }
 
     } catch (error) {
         console.error('Processing error:', error);

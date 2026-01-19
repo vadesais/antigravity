@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +22,10 @@ import {
   Users,
   Copy,
   ExternalLink,
-  Check
+  Check,
+  TrendingUp,
+  Clock,
+  Calendar
 } from 'lucide-react';
 import {
   Select,
@@ -49,6 +52,7 @@ interface Profile {
   expires_at?: string | null;
   slug?: string | null;
   user_roles: { role: string }[];
+  monthly_count?: number;
 }
 
 export default function MasterPanel() {
@@ -71,6 +75,14 @@ export default function MasterPanel() {
   const [allowImage, setAllowImage] = useState(false);
   const [allowVisagismo, setAllowVisagismo] = useState(false);
   const [allowAi, setAllowAi] = useState(false);
+  const [allowModelCreation, setAllowModelCreation] = useState(false);
+  const [dailyLimit, setDailyLimit] = useState(10);
+  const [monthlyLimit, setMonthlyLimit] = useState(100);
+  const [stats, setStats] = useState({
+    totalGenerations: 0,
+    dailyCount: 0,
+    monthlyCount: 0
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
@@ -89,7 +101,7 @@ export default function MasterPanel() {
     }
   };
 
-  const fetchProfiles = async () => {
+  const fetchProfiles = useCallback(async () => {
     setLoading(true);
     try {
       const { data: profilesData, error: profilesError } = await supabase
@@ -105,12 +117,20 @@ export default function MasterPanel() {
 
       if (rolesError) throw rolesError;
 
-      const profilesWithRoles = (profilesData || []).map(profile => ({
-        ...profile,
-        user_roles: (rolesData || [])
-          .filter(r => r.user_id === profile.user_id)
-          .map(r => ({ role: r.role }))
-      }));
+      const { data: limitsData } = await supabase
+        .from('model_generation_limits')
+        .select('profile_id, monthly_count');
+
+      const profilesWithRoles = (profilesData || []).map(profile => {
+        const limit = limitsData?.find(l => l.profile_id === profile.id);
+        return {
+          ...profile,
+          monthly_count: limit?.monthly_count || 0,
+          user_roles: (rolesData || [])
+            .filter(r => r.user_id === profile.user_id)
+            .map(r => ({ role: r.role }))
+        };
+      });
 
       setProfiles(profilesWithRoles);
     } catch (error) {
@@ -123,11 +143,11 @@ export default function MasterPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchProfiles();
-  }, []);
+  }, [fetchProfiles]);
 
   const resetForm = () => {
     setShowForm(false);
@@ -140,7 +160,9 @@ export default function MasterPanel() {
     setAllowCamera(true);
     setAllowImage(false);
     setAllowVisagismo(false);
-    setAllowAi(false);
+    setAllowModelCreation(false);
+    setDailyLimit(10);
+    setMonthlyLimit(100);
   };
 
   const handleProvadorToggle = (type: 'camera' | 'image') => {
@@ -174,12 +196,26 @@ export default function MasterPanel() {
             allow_camera: allowCamera,
             allow_image: allowImage,
             allow_visagismo: allowVisagismo,
-            allow_ai: allowAi,
+            allow_model_creation: allowModelCreation,
             plan: storePlan,
           })
           .eq('id', editingId);
 
         if (error) throw error;
+
+        // Update limits if model creation is enabled (or just always update if relevant)
+        if (allowModelCreation) {
+          const { error: limitsError } = await supabase
+            .from('model_generation_limits')
+            .upsert({
+              profile_id: editingId,
+              daily_limit: dailyLimit,
+              monthly_limit: monthlyLimit
+            }, { onConflict: 'profile_id' });
+
+          if (limitsError) throw limitsError;
+        }
+
         toast({ title: 'Ótica atualizada!' });
       } else {
         // Create new user via edge function (uses service role to avoid RLS issues)
@@ -191,7 +227,9 @@ export default function MasterPanel() {
             allowCamera: allowCamera,
             allowImage: allowImage,
             allowVisagismo: allowVisagismo,
-            allowAi: allowAi,
+            allowModelCreation: allowModelCreation,
+            dailyLimit: dailyLimit,
+            monthlyLimit: monthlyLimit,
             plan: storePlan,
             isBlocked: storeStatus === 'inactive',
           },
@@ -208,11 +246,11 @@ export default function MasterPanel() {
 
       resetForm();
       fetchProfiles();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving store:', error);
       toast({
         title: 'Erro ao salvar',
-        description: error.message,
+        description: (error instanceof Error ? error.message : 'Erro desconhecido'),
         variant: 'destructive',
       });
     } finally {
@@ -220,15 +258,54 @@ export default function MasterPanel() {
     }
   };
 
-  const handleEditStore = (profile: Profile) => {
+  const handleEditStore = async (profile: Profile) => {
     setEditingId(profile.id);
     setStoreName(profile.store_name || '');
     setStoreStatus(profile.is_blocked ? 'inactive' : 'active');
     setAllowCamera(profile.allow_camera ?? true);
     setAllowImage(profile.allow_image ?? false);
     setAllowVisagismo(profile.allow_visagismo ?? false);
-    setAllowAi(profile.allow_ai ?? false);
+    // allow_ai removed
+    setAllowModelCreation(profile.allow_model_creation ?? false);
     setStorePlan(profile.plan || '1_month');
+
+    // Fetch limits
+    try {
+      const { data: limits } = await supabase
+        .from('model_generation_limits')
+        .select('daily_limit, monthly_limit, daily_count, monthly_count')
+        .eq('profile_id', profile.id)
+        .single();
+
+      if (limits) {
+        setDailyLimit(limits.daily_limit);
+        setMonthlyLimit(limits.monthly_limit);
+        setStats(prev => ({
+          ...prev,
+          dailyCount: limits.daily_count || 0,
+          monthlyCount: limits.monthly_count || 0
+        }));
+      } else {
+        setDailyLimit(10);
+        setMonthlyLimit(100);
+        setStats(prev => ({ ...prev, dailyCount: 0, monthlyCount: 0 }));
+      }
+
+      // Fetch total generations
+      const { count: totalCount } = await supabase
+        .from('model_generations')
+        .select('*', { count: 'exact', head: true })
+        .eq('profile_id', profile.id);
+
+      setStats(prev => ({
+        ...prev,
+        totalGenerations: totalCount || 0
+      }));
+
+    } catch (e) {
+      console.error("Error fetching limits", e);
+    }
+
     setShowForm(true);
   };
 
@@ -246,10 +323,10 @@ export default function MasterPanel() {
       if (error) throw error;
       toast({ title: 'Ótica excluída' });
       fetchProfiles();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Erro ao excluir',
-        description: error.message,
+        description: (error instanceof Error ? error.message : 'Erro desconhecido'),
         variant: 'destructive',
       });
     }
@@ -300,7 +377,7 @@ export default function MasterPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50" translate="no">
       {/* Header - Dark style like original */}
       <header className="w-full bg-slate-900 border-b border-slate-800 sticky top-0 z-20 shadow-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -361,9 +438,19 @@ export default function MasterPanel() {
                 <PlusCircle className="w-5 h-5 text-indigo-600" />
                 {editingId ? 'Editar Ótica' : 'Nova Ótica'}
               </h2>
+              {editingId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetForm}
+                  className="text-xs flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" /> Nova
+                </Button>
+              )}
             </div>
 
-            {!showForm ? (
+            {!showForm && !editingId ? (
               <button
                 onClick={() => setShowForm(true)}
                 className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-lg border border-dashed border-slate-300 flex items-center justify-center gap-2 transition"
@@ -445,7 +532,7 @@ export default function MasterPanel() {
                 {/* Tipo de Provador */}
                 <div className="border-t border-slate-100 pt-4 mt-2">
                   <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-indigo-600" /> Tipo de Provador
+                    <Eye className="w-4 h-4 text-indigo-600" /> Provador Virtual
                   </h4>
 
                   <div className="flex items-center gap-2 mb-2">
@@ -458,7 +545,7 @@ export default function MasterPanel() {
                     />
                     <label htmlFor="allow-camera" className="text-sm text-slate-700 font-medium cursor-pointer">
                       <Camera className="w-4 h-4 inline mr-1" />
-                      Provador por Câmera (AR)
+                      Com Vitrine
                     </label>
                   </div>
 
@@ -472,7 +559,7 @@ export default function MasterPanel() {
                     />
                     <label htmlFor="allow-image" className="text-sm text-slate-700 font-medium cursor-pointer">
                       <ImageIcon className="w-4 h-4 inline mr-1" />
-                      Provador por Imagem (Upload)
+                      Sem Vitrine
                     </label>
                   </div>
 
@@ -487,7 +574,7 @@ export default function MasterPanel() {
                     <Sparkles className="w-4 h-4 text-indigo-600" /> Funcionalidades Extras
                   </h4>
 
-                  <div className="space-y-2">
+                  <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={allowVisagismo}
@@ -496,12 +583,68 @@ export default function MasterPanel() {
                       <span className="text-sm text-slate-700">Visagismo Inteligente</span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={allowAi}
-                        onCheckedChange={setAllowAi}
-                      />
-                      <span className="text-sm text-slate-700">Modelos Digitais (IA)</span>
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Switch
+                          checked={allowModelCreation}
+                          onCheckedChange={setAllowModelCreation}
+                        />
+                        <span className="text-sm font-bold text-slate-700">Criação de Modelos</span>
+                      </div>
+
+                      {allowModelCreation && (
+                        <div className="space-y-4">
+                          {/* Stats Cards - Only visible when editing and enabled */}
+                          {editingId && (
+                            <div className="grid grid-cols-3 gap-2 px-1">
+                              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-2 border border-blue-200 text-center">
+                                <div className="flex items-center justify-center gap-1 mb-1">
+                                  <TrendingUp className="w-3 h-3 text-blue-600" />
+                                  <span className="text-[10px] font-bold text-blue-600 uppercase">Total</span>
+                                </div>
+                                <div className="text-lg font-bold text-blue-900 leading-none">{stats.totalGenerations}</div>
+                              </div>
+
+                              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-2 border border-green-200 text-center">
+                                <div className="flex items-center justify-center gap-1 mb-1">
+                                  <Clock className="w-3 h-3 text-green-600" />
+                                  <span className="text-[10px] font-bold text-green-600 uppercase">Hoje</span>
+                                </div>
+                                <div className="text-lg font-bold text-green-900 leading-none">{stats.dailyCount} <span className="text-[10px] font-normal text-green-700">/ {dailyLimit}</span></div>
+                              </div>
+
+                              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-2 border border-purple-200 text-center">
+                                <div className="flex items-center justify-center gap-1 mb-1">
+                                  <Calendar className="w-3 h-3 text-purple-600" />
+                                  <span className="text-[10px] font-bold text-purple-600 uppercase">Mês</span>
+                                </div>
+                                <div className="text-lg font-bold text-purple-900 leading-none">{stats.monthlyCount} <span className="text-[10px] font-normal text-purple-700">/ {monthlyLimit}</span></div>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-2 gap-3 pl-2">
+                            <div>
+                              <Label className="text-xs text-slate-500">Limite Diário</Label>
+                              <Input
+                                type="number"
+                                className="h-8 text-sm mt-1"
+                                value={dailyLimit}
+                                onChange={(e) => setDailyLimit(parseInt(e.target.value) || 0)}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-slate-500">Limite Mensal</Label>
+                              <Input
+                                type="number"
+                                className="h-8 text-sm mt-1"
+                                value={monthlyLimit}
+                                onChange={(e) => setMonthlyLimit(parseInt(e.target.value) || 0)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -526,14 +669,7 @@ export default function MasterPanel() {
                   </Button>
                 </div>
 
-                {editingId && (
-                  <div className="mt-8 pt-6 border-t border-slate-200">
-                    <ModelCreationControl
-                      userId={editingId}
-                      onUpdate={() => fetchProfiles()}
-                    />
-                  </div>
-                )}
+                {/* ModelCreationControl removed - Integrated above */}
               </div>
             )}
           </div>
@@ -570,7 +706,11 @@ export default function MasterPanel() {
                         p-4 rounded-xl border transition-all
                         ${profile.is_blocked
                           ? 'bg-red-50 border-red-200'
-                          : 'bg-slate-50 border-slate-200 hover:border-indigo-300'
+                          : profile.allow_camera
+                            ? 'bg-emerald-50 border-emerald-200 hover:border-emerald-300' // Com Vitrine (Verde)
+                            : profile.allow_image
+                              ? 'bg-purple-50 border-purple-200 hover:border-purple-300' // Sem Vitrine (Lilás)
+                              : 'bg-slate-50 border-slate-200 hover:border-indigo-300' // Padrão
                         }
                       `}
                     >
@@ -578,7 +718,14 @@ export default function MasterPanel() {
                         <div className="flex items-center gap-3">
                           <div className={`
                             w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white
-                            ${profile.is_blocked ? 'bg-red-400' : 'bg-indigo-500'}
+                            ${profile.is_blocked
+                              ? 'bg-red-400'
+                              : profile.allow_camera
+                                ? 'bg-emerald-500' // Com Vitrine (Verde)
+                                : profile.allow_image
+                                  ? 'bg-purple-500' // Sem Vitrine (Lilás)
+                                  : 'bg-indigo-500' // Padrão
+                            }
                           `}>
                             {(profile.store_name || 'O')[0].toUpperCase()}
                           </div>
@@ -601,24 +748,16 @@ export default function MasterPanel() {
                         <div className="flex items-center gap-2">
                           {/* Feature badges */}
                           <div className="hidden sm:flex items-center gap-1 mr-2">
-                            {profile.allow_camera && (
-                              <span className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center" title="Câmera AR">
-                                <Camera className="w-3 h-3 text-blue-600" />
-                              </span>
-                            )}
-                            {profile.allow_image && (
-                              <span className="w-6 h-6 rounded bg-purple-100 flex items-center justify-center" title="Provador Imagem">
-                                <ImageIcon className="w-3 h-3 text-purple-600" />
-                              </span>
-                            )}
+
                             {profile.allow_visagismo && (
                               <span className="w-6 h-6 rounded bg-green-100 flex items-center justify-center" title="Visagismo">
                                 <Eye className="w-3 h-3 text-green-600" />
                               </span>
                             )}
                             {profile.allow_ai && (
-                              <span className="w-6 h-6 rounded bg-amber-100 flex items-center justify-center" title="IA">
+                              <span className="h-6 px-1.5 rounded bg-amber-100 flex items-center justify-center gap-1" title={`IA (${profile.monthly_count || 0} gerações)`}>
                                 <Sparkles className="w-3 h-3 text-amber-600" />
+                                <span className="text-[10px] font-bold text-amber-700">{profile.monthly_count || 0}</span>
                               </span>
                             )}
                           </div>

@@ -1,12 +1,13 @@
 import { Download, Sparkles } from 'lucide-react';
-import { ModelGeneration } from '@/types/modelCreation';
+import { ModelGeneration, ModelGenerationLimits } from '@/types/modelCreation';
 
 interface ResultDisplayProps {
     result: ModelGeneration;
     onNewGeneration: () => void;
+    limits: ModelGenerationLimits | null;
 }
 
-export default function ResultDisplay({ result, onNewGeneration }: ResultDisplayProps) {
+export default function ResultDisplay({ result, onNewGeneration, limits }: ResultDisplayProps) {
     const handleDownload = async () => {
         if (!result.result_image_url) return;
 
@@ -30,18 +31,20 @@ export default function ResultDisplay({ result, onNewGeneration }: ResultDisplay
     return (
         <div>
             <div className="text-center mb-6">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full mb-4">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full mb-2">
                     <Sparkles className="w-4 h-4" />
                     <span className="text-sm font-semibold">Modelo gerado com sucesso!</span>
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900">
-                    Seu Modelo Está Pronto
-                </h2>
+                {limits && (
+                    <p className="text-sm text-slate-500 font-medium">
+                        {limits.daily_count}/{limits.daily_limit} gerações hoje
+                    </p>
+                )}
             </div>
 
             {/* Imagem Resultado */}
             <div className="mb-6">
-                <div className="aspect-[3/4] bg-slate-100 rounded-2xl overflow-hidden flex items-center justify-center max-w-2xl mx-auto">
+                <div className="aspect-[4/5] bg-slate-100 rounded-2xl overflow-hidden flex items-center justify-center max-w-sm mx-auto">
                     <img
                         src={result.result_image_url!}
                         alt="Modelo gerado"

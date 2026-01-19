@@ -99,6 +99,44 @@ export type Database = {
           },
         ]
       }
+      model_generation_limits: {
+        Row: {
+          profile_id: string
+          daily_limit: number
+          monthly_limit: number
+          daily_count: number
+          monthly_count: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          profile_id: string
+          daily_limit?: number
+          monthly_limit?: number
+          daily_count?: number
+          monthly_count?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          profile_id?: string
+          daily_limit?: number
+          monthly_limit?: number
+          daily_count?: number
+          monthly_count?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "model_generation_limits_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           allow_ai: boolean | null

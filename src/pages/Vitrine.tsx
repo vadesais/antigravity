@@ -19,6 +19,9 @@ interface Profile {
   allow_visagismo: boolean | null;
   is_blocked: boolean | null;
   phone: string | null;
+  wa_enabled: boolean | null;
+  wa_number: string | null;
+  wa_message: string | null;
 }
 
 interface Glass {
@@ -67,7 +70,7 @@ export default function Vitrine() {
       // Fetch profile by slug
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, store_name, store_logo_url, banner_url, store_color, allow_camera, allow_image, allow_visagismo, is_blocked, phone')
+        .select('id, store_name, store_logo_url, banner_url, store_color, allow_camera, allow_image, allow_visagismo, is_blocked, phone, wa_enabled, wa_number, wa_message')
         .eq('slug', slug)
         .single();
 
@@ -79,6 +82,13 @@ export default function Vitrine() {
 
       if (profileData.is_blocked) {
         setError('Esta vitrine está temporariamente indisponível');
+        setLoading(false);
+        return;
+      }
+
+      // Block vitrine if store is set to "Provador por Imagem" (allow_image)
+      if (profileData.allow_image) {
+        setError('Esta vitrine não está disponível para este tipo de loja');
         setLoading(false);
         return;
       }
@@ -373,11 +383,24 @@ export default function Vitrine() {
                           <MessageCircle className="w-3.5 h-3.5" />
                           Comprar
                         </a>
-                      ) : profile.phone ? (
+                      ) : (profile.phone || (profile.wa_enabled && profile.wa_number)) ? (
                         <button
                           onClick={() => {
-                            const message = encodeURIComponent(`Olá! Quero o modelo ${glass.name}`);
-                            window.open(`https://wa.me/${profile.phone?.replace(/\D/g, '')}?text=${message}`, '_blank');
+                            let message = `Olá! Quero o modelo ${glass.name}`;
+
+                            if (profile.wa_enabled && profile.wa_message) {
+                              message = profile.wa_message.replace('{ref}', glass.name);
+                              // If {ref} is not used but message exists, append the glass name for context unless it already ends with ':' or similar, 
+                              // but for safety let's append it if {ref} wasn't found to ensure context.
+                              if (!profile.wa_message.includes('{ref}')) {
+                                message = `${profile.wa_message} ${glass.name}`;
+                              }
+                            }
+
+                            const phone = (profile.wa_enabled && profile.wa_number) ? profile.wa_number : profile.phone;
+                            const encodedMessage = encodeURIComponent(message);
+
+                            window.open(`https://wa.me/${phone?.replace(/\D/g, '')}?text=${encodedMessage}`, '_blank');
                           }}
                           className="w-full bg-emerald-600 text-white text-xs font-medium py-1.5 px-3 rounded hover:bg-emerald-700 transition flex items-center justify-center gap-1.5"
                         >
@@ -409,7 +432,7 @@ export default function Vitrine() {
 
       {/* Footer */}
       <footer className="text-center py-4 text-xs text-slate-400 border-t border-slate-100 mt-12">
-        Powered by <span className="font-medium">Lopix</span>
+        Powered by <span className="font-medium">Oprovadorvirtual.com.br</span>
       </footer>
 
       {/* AR Try-On Modal */}

@@ -70,6 +70,7 @@ export default function AdminPanel() {
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [allowModelCreation, setAllowModelCreation] = useState(false);
+  const [allowImage, setAllowImage] = useState(false);
 
   // Editor state
   const [editingGlass, setEditingGlass] = useState<Glass | null>(null);
@@ -103,7 +104,7 @@ export default function AdminPanel() {
     try {
       const { data } = await supabase
         .from('profiles')
-        .select('slug, allow_model_creation')
+        .select('slug, allow_model_creation, allow_image')
         .eq('id', profileId)
         .single();
       if (data?.slug) {
@@ -111,6 +112,9 @@ export default function AdminPanel() {
       }
       if (data?.allow_model_creation !== undefined) {
         setAllowModelCreation(data.allow_model_creation);
+      }
+      if (data?.allow_image !== undefined) {
+        setAllowImage(data.allow_image);
       }
     } catch (error) {
       console.error('Error fetching profile slug:', error);
@@ -544,15 +548,15 @@ export default function AdminPanel() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-800 tracking-tight">
-                Lopix <span className="text-blue-600">Admin</span>
+                <span className="text-blue-600">Admin</span>
               </h1>
-              <p className="text-xs text-slate-500">Painel de Criação</p>
+              <p className="text-xs text-slate-500">Painel administrativo</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Vitrine Link */}
-            {profileSlug && (
+            {/* Vitrine Link - Hidden if allow_image is true */}
+            {profileSlug && !allowImage && (
               <div className="hidden md:flex items-center gap-2">
                 <button
                   onClick={handleCopyVitrineLink}
@@ -572,13 +576,6 @@ export default function AdminPanel() {
                 </a>
               </div>
             )}
-
-            <button
-              onClick={signOut}
-              className="text-sm font-semibold text-slate-500 hover:text-slate-700 transition"
-            >
-              Sair
-            </button>
 
             {/* Navigation Tabs */}
             <div className="hidden md:flex items-center bg-slate-100 rounded-lg p-1">
@@ -607,13 +604,20 @@ export default function AdminPanel() {
                 <Settings className="w-4 h-4" /> Configuração
               </button>
             </div>
+
+            <button
+              onClick={signOut}
+              className="text-sm font-semibold text-red-500 hover:text-red-700 transition"
+            >
+              Sair
+            </button>
           </div>
         </div>
       </header>
 
       <main className="w-full max-w-7xl mx-auto p-6">
         {/* Mobile Vitrine Link */}
-        {profileSlug && (
+        {profileSlug && !allowImage && (
           <div className="md:hidden flex items-center justify-center gap-2 mb-4">
             <a
               href={getVitrineUrl()}
@@ -1041,7 +1045,12 @@ export default function AdminPanel() {
                         <div className="flex items-center gap-2 mb-4">
                           <Switch
                             checked={waEnabled}
-                            onCheckedChange={setWaEnabled}
+                            onCheckedChange={(checked) => {
+                              setWaEnabled(checked);
+                              if (checked && !waMessage) {
+                                setWaMessage("Olá, tenho interesse nesse modelo:");
+                              }
+                            }}
                           />
                           <span className="text-sm font-bold text-slate-800">Ativar Link Automático</span>
                         </div>

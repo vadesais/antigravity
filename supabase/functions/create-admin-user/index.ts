@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
+
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     // Verify the calling user using getClaims instead of getUser
     const token = authHeader.replace('Bearer ', '');
     const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    
+
     if (claimsError || !claimsData?.claims) {
       console.error('Failed to verify token:', claimsError);
       return new Response(
@@ -42,12 +42,12 @@ Deno.serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
+
     const callingUserId = claimsData.claims.sub;
 
     // Check if user is master using service role client
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     const { data: roleData, error: roleCheckError } = await adminClient
       .from('user_roles')
       .select('role')
@@ -64,18 +64,21 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { 
-      email, 
-      password, 
-      storeName, 
-      allowCamera, 
-      allowImage, 
+    const {
+      email,
+      password,
+      storeName,
+      allowCamera,
+      allowImage,
       allowVisagismo,
-      allowAi,
-      plan, 
-      isBlocked 
+      allowVisagismo,
+      allowModelCreation,
+      dailyLimit,
+      monthlyLimit,
+      plan,
+      isBlocked
     } = await req.json();
-    
+
     if (!email || !password || !storeName) {
       return new Response(
         JSON.stringify({ error: 'Email, senha e nome da loja são obrigatórios' }),
@@ -134,7 +137,7 @@ Deno.serve(async (req) => {
         allow_camera: allowCamera ?? true,
         allow_image: allowImage ?? false,
         allow_visagismo: allowVisagismo ?? false,
-        allow_ai: allowAi ?? false,
+        allow_model_creation: allowModelCreation ?? false,
         is_blocked: isBlocked ?? false,
         plan: plan ?? '1_month',
       })
@@ -142,14 +145,46 @@ Deno.serve(async (req) => {
 
     if (profileError) {
       console.error('Error updating profile:', profileError);
-      // Don't fail completely, profile can be updated later
     } else {
       console.log('Profile updated successfully');
+
+      // If model creation is enabled, set limits
+      if (allowModelCreation) {
+        const { error: limitsError } = await adminClient
+          .from('model_generation_limits')
+          .insert({
+            profile_id: newUserId, // Note: profile.id is same as user_id in this schema based on triggers, but wait...
+            // Actually usually profile.id = user.id. 
+            // Let's check the schema. In most supabase auth setups, profile.id is uuid references auth.users.
+            // However, we just inserted a user. The trigger creates the profile. 
+            // We used .eq('user_id', newUserId) above which implies profile has user_id column. 
+            // But generally profile id is the user id. 
+            // Let's fetch the profile first to be safe, or just use newUserId as profile_id if we contain that assumption.
+            // Investigating previous code: .eq('user_id', newUserId) suggests user_id is a column.
+            // Let's assume profile.id is the UUID we need for limits table which usually references profile(id).
+            // But triggering usually sets id = new.id. 
+            // Let's fetch the profile ID to be 100% sure.
+          });
+
+        // Safer approach: Fetch profile ID first
+        const { data: profileData } = await adminClient.from('profiles').select('id').eq('user_id', newUserId).single();
+
+        if (profileData) {
+          await adminClient.from('model_generation_limits').insert({
+            profile_id: profileData.id,
+            daily_limit: dailyLimit || 10,
+            monthly_limit: monthlyLimit || 100,
+            daily_count: 0,
+            monthly_count: 0
+          });
+          console.log('Model generation limits initialized');
+        }
+      }
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         userId: newUserId,
         message: `Ótica "${storeName}" criada com sucesso!`
       }),

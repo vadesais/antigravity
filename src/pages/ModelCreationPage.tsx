@@ -38,19 +38,27 @@ export default function ModelCreationPage() {
     }, [generationId, step]);
 
     const loadLimits = async () => {
-        // Mock temporário até regenerar tipos do Supabase
-        setLimits({
-            id: '1',
-            profile_id: profileId || '',
-            daily_limit: 10,
-            monthly_limit: 100,
-            daily_count: 0,
-            monthly_count: 0,
-            last_daily_reset: new Date().toISOString().split('T')[0],
-            last_monthly_reset: new Date().toISOString().split('T')[0],
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        });
+        if (!profileId) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('model_generation_limits')
+                .select('*')
+                .eq('profile_id', profileId)
+                .single();
+
+            if (error) {
+                // Se não encontrar (primeiro acesso), pode ser null ou erro
+                console.log('Limits not found or error:', error);
+                return;
+            }
+
+            if (data) {
+                setLimits(data);
+            }
+        } catch (err) {
+            console.error('Error loading limits:', err);
+        }
     };
 
     const handleGlassesUpload = async (file: File) => {
@@ -153,6 +161,7 @@ export default function ModelCreationPage() {
             if (data.success && data.generation) {
                 if (data.generation.status === 'completed') {
                     setResult(data.generation);
+                    await loadLimits(); // Atualizar limites/contador
                     setStep('result');
                 } else if (data.generation.status === 'failed') {
                     setError(data.generation.error_message || 'Erro ao gerar modelo');
@@ -215,16 +224,32 @@ export default function ModelCreationPage() {
 
                 {/* Main Content */}
                 <div className="bg-white rounded-2xl shadow-lg p-8">
-                    {/* Back Button */}
-                    {step !== 'upload' && step !== 'generate' && (
-                        <button
-                            onClick={handleBack}
-                            className="mb-6 flex items-center gap-2 text-slate-600 hover:text-slate-900 transition"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            <span className="text-sm font-medium">Voltar</span>
-                        </button>
-                    )}
+                    {/* Back Button and Preview */}
+                    <div className="flex items-start justify-between mb-6">
+                        {step !== 'upload' && step !== 'generate' && (
+                            <button
+                                onClick={handleBack}
+                                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                <span className="text-sm font-medium">Voltar</span>
+                            </button>
+                        )}
+
+                        {/* Persistent Preview */}
+                        {step !== 'upload' && glassesImageUrl && (
+                            <div className="flex flex-col items-end">
+                                <span className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Óculos Selecionado</span>
+                                <div className="w-48 h-48 bg-white rounded-2xl overflow-hidden border-2 border-slate-100 shadow-md p-2">
+                                    <img
+                                        src={glassesImageUrl}
+                                        alt="Preview"
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Steps */}
                     {step === 'upload' && (
@@ -266,6 +291,7 @@ export default function ModelCreationPage() {
                         <ResultDisplay
                             result={result}
                             onNewGeneration={handleNewGeneration}
+                            limits={limits}
                         />
                     )}
                 </div>
