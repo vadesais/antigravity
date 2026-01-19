@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Sparkles, ArrowLeft, Loader2, X } from 'lucide-react';
 import { ModelCreationStep, ModelCreationConfig, ModelGeneration, ModelGenerationLimits } from '@/types/modelCreation';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,6 +14,7 @@ import UsageLimits from '../components/modelCreation/UsageLimits';
 
 export default function ModelCreationPage() {
     const { profileId } = useAuth();
+    const navigate = useNavigate();
     const [step, setStep] = useState<ModelCreationStep>('upload');
     const [glassesImage, setGlassesImage] = useState<File | null>(null);
     const [glassesImageUrl, setGlassesImageUrl] = useState<string | null>(null);
@@ -196,16 +198,25 @@ export default function ModelCreationPage() {
         <div className="min-h-screen bg-slate-50 p-6">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
-                    <div className="flex items-center gap-3 mb-2">
-                        <Sparkles className="w-8 h-8 text-blue-600" />
-                        <h1 className="text-3xl font-bold text-slate-900">
-                            Criação de Modelos
-                        </h1>
+                <div className="mb-8 flex items-start justify-between">
+                    <div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <Sparkles className="w-8 h-8 text-blue-600" />
+                            <h1 className="text-3xl font-bold text-slate-900">
+                                Criação de Modelos
+                            </h1>
+                        </div>
+                        <p className="text-slate-600">
+                            Gere modelos hiper-realistas usando inteligência artificial
+                        </p>
                     </div>
-                    <p className="text-slate-600">
-                        Gere modelos hiper-realistas usando inteligência artificial
-                    </p>
+                    <button
+                        onClick={() => navigate('/admin')}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-white rounded-lg border border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition shadow-sm"
+                    >
+                        <X className="w-4 h-4" />
+                        Fechar
+                    </button>
                 </div>
 
                 {/* Usage Limits */}
