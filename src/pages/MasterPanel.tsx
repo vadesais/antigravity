@@ -7,9 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Loader2, 
-  Shield, 
+import {
+  Loader2,
+  Shield,
   Server,
   PlusCircle,
   Plus,
@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import ModelCreationControl from '@/components/master/ModelCreationControl';
 
 interface Profile {
   id: string;
@@ -43,6 +44,7 @@ interface Profile {
   allow_image?: boolean;
   allow_visagismo?: boolean;
   allow_ai?: boolean;
+  allow_model_creation?: boolean;
   plan?: string;
   expires_at?: string | null;
   slug?: string | null;
@@ -56,7 +58,7 @@ export default function MasterPanel() {
   const [loading, setLoading] = useState(true);
   const [apiKey, setApiKey] = useState('');
   const [savingKey, setSavingKey] = useState(false);
-  
+
   // Form state
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -341,7 +343,7 @@ export default function MasterPanel() {
                 className="font-mono"
               />
             </div>
-            <Button 
+            <Button
               onClick={handleSaveApiKey}
               disabled={savingKey}
               className="bg-indigo-600 hover:bg-indigo-700"
@@ -356,7 +358,7 @@ export default function MasterPanel() {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 h-fit">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <PlusCircle className="w-5 h-5 text-indigo-600" /> 
+                <PlusCircle className="w-5 h-5 text-indigo-600" />
                 {editingId ? 'Editar Ótica' : 'Nova Ótica'}
               </h2>
             </div>
@@ -523,6 +525,15 @@ export default function MasterPanel() {
                     {editingId ? 'Salvar Alterações' : 'Criar Ótica'}
                   </Button>
                 </div>
+
+                {editingId && (
+                  <div className="mt-8 pt-6 border-t border-slate-200">
+                    <ModelCreationControl
+                      userId={editingId}
+                      onUpdate={() => fetchProfiles()}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -557,8 +568,8 @@ export default function MasterPanel() {
                       key={profile.id}
                       className={`
                         p-4 rounded-xl border transition-all
-                        ${profile.is_blocked 
-                          ? 'bg-red-50 border-red-200' 
+                        ${profile.is_blocked
+                          ? 'bg-red-50 border-red-200'
                           : 'bg-slate-50 border-slate-200 hover:border-indigo-300'
                         }
                       `}

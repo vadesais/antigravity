@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +26,8 @@ import {
   ArrowLeft,
   Upload,
   Layers,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import {
   Select,
@@ -55,6 +57,7 @@ type ConfigSubMenu = 'main' | 'site' | 'whatsapp' | 'categories';
 
 export default function AdminPanel() {
   const { signOut, profileId } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [glasses, setGlasses] = useState<Glass[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +69,7 @@ export default function AdminPanel() {
   // Profile state for vitrine link
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [allowModelCreation, setAllowModelCreation] = useState(false);
 
   // Editor state
   const [editingGlass, setEditingGlass] = useState<Glass | null>(null);
@@ -99,11 +103,14 @@ export default function AdminPanel() {
     try {
       const { data } = await supabase
         .from('profiles')
-        .select('slug')
+        .select('slug, allow_model_creation')
         .eq('id', profileId)
         .single();
       if (data?.slug) {
         setProfileSlug(data.slug);
+      }
+      if (data?.allow_model_creation !== undefined) {
+        setAllowModelCreation(data.allow_model_creation);
       }
     } catch (error) {
       console.error('Error fetching profile slug:', error);
@@ -900,6 +907,24 @@ export default function AdminPanel() {
                         </div>
                         <ExternalLink className="w-4 h-4 text-slate-400" />
                       </button>
+
+                      {allowModelCreation && (
+                        <button
+                          onClick={() => navigate('/admin/model-creation')}
+                          className="w-full p-4 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50 transition flex items-center gap-4 group"
+                        >
+                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                            <Sparkles className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <h3 className="font-bold text-slate-800 group-hover:text-purple-600">
+                              Criação de Modelos
+                            </h3>
+                            <p className="text-xs text-slate-500">Gere modelos hiper-realistas com IA</p>
+                          </div>
+                          <ExternalLink className="w-4 h-4 text-slate-400" />
+                        </button>
+                      )}
                     </div>
                   </>
                 )}
