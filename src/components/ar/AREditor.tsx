@@ -184,6 +184,14 @@ export default function AREditor({
   const handleScaleChange = useCallback((value: number) => {
     if (editingPart) {
       updatePart(editingPart, { scale: value });
+
+      // Auto-sync temple scales: when adjusting one temple, update the other
+      if (editingPart === 'left') {
+        updatePart('right', { scale: value });
+      } else if (editingPart === 'right') {
+        updatePart('left', { scale: value });
+      }
+
       if (editingPart === 'front' && autoAnchors) {
         snapAnchorsToFront();
       }

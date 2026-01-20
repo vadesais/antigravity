@@ -42,11 +42,13 @@ export default function ARCamera({
   const faceMeshRef = useRef<any>(null);
   const animationFrameRef = useRef<number>();
 
+
   const [showTemples, setShowTemples] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTarget, setDragTarget] = useState<string | null>(null);
   const [hoverTarget, setHoverTarget] = useState<string | null>(null);
   const [cameraZoom, setCameraZoom] = useState(1.0); // 1.0 = 100% (original size)
+  const [isRightClickDrag, setIsRightClickDrag] = useState(false); // Right-click temple drag mode
   const lastPosRef = useRef({ x: 0, y: 0 });
 
   // Lerp function for smooth interpolation
@@ -166,7 +168,12 @@ export default function ARCamera({
     const dx = rEyeOut.x - lEyeOut.x;
     const dy = rEyeOut.y - lEyeOut.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
+
+    // INTELLIGENT ROTATION: Allow minimal tilt only (±8 degrees max)
+    let rawAngle = Math.atan2(dy, dx);
+    const MAX_TILT_DEGREES = 8;
+    const MAX_TILT_RADIANS = (MAX_TILT_DEGREES * Math.PI) / 180;
+    const angle = Math.max(-MAX_TILT_RADIANS, Math.min(MAX_TILT_RADIANS, rawAngle));
 
     const midX = (lEyeOut.x + rEyeOut.x) / 2;
     const yaw = (getPoint(1).x - midX) / dist;
@@ -182,7 +189,7 @@ export default function ARCamera({
     };
 
     const s = smoothedRef.current;
-    const f = 0.2;
+    const f = 0.3; // Increased smoothing for better stability
 
     if (s.x === null) {
       Object.assign(s, target);
@@ -190,19 +197,26 @@ export default function ARCamera({
       s.x = lerp(s.x, target.x, f);
       s.y = lerp(s.y!, target.y, f);
       s.w = lerp(s.w!, target.w, f);
-      s.angle = lerp(s.angle!, target.angle, f);
+
+      // Heavy smoothing for angle to prevent spinning
+      s.angle = lerp(s.angle!, target.angle, 0.5); // Very high smoothing = very stable
+
+
       s.yaw = lerp(s.yaw!, target.yaw, 0.1);
+
+      // Higher smoothing for jaw positions to keep temples stable
+      const jawSmoothing = 0.4;
       s.jawLeft = {
-        x: lerp(s.jawLeft!.x, target.jawLeft.x, f),
-        y: lerp(s.jawLeft!.y, target.jawLeft.y, f),
+        x: lerp(s.jawLeft!.x, target.jawLeft.x, jawSmoothing),
+        y: lerp(s.jawLeft!.y, target.jawLeft.y, jawSmoothing),
       };
       s.jawRight = {
-        x: lerp(s.jawRight!.x, target.jawRight.x, f),
-        y: lerp(s.jawRight!.y, target.jawRight.y, f),
+        x: lerp(s.jawRight!.x, target.jawRight.x, jawSmoothing),
+        y: lerp(s.jawRight!.y, target.jawRight.y, jawSmoothing),
       };
     }
 
-    const YAW_SENSITIVITY = 0.04;
+    const YAW_SENSITIVITY = 0.08;
     const isLookingSide = Math.abs(s.yaw!) > YAW_SENSITIVITY;
     setShowTemples(isLookingSide);
 
@@ -359,11 +373,27 @@ export default function ARCamera({
     if (!editingPart) return;
 
     const pos = getMousePos(e);
+
+    // Check if it's a right-click (button 2) on a temple
+    const isRightClick = 'button' in e && e.button === 2;
+
+    if (isRightClick && (editingPart === 'left' || editingPart === 'right')) {
+      // Right-click on temple: enable free drag mode
+      setIsDragging(true);
+      setDragTarget('templeBody'); // Special target for whole temple drag
+      setIsRightClickDrag(true);
+      lastPosRef.current = pos;
+      e.preventDefault();
+      return;
+    }
+
+    // Normal left-click behavior for anchor points
     const target = checkHit(pos.x, pos.y);
 
     if (target) {
       setIsDragging(true);
       setDragTarget(target);
+      setIsRightClickDrag(false);
       lastPosRef.current = pos;
       e.preventDefault();
     }
@@ -393,6 +423,28 @@ export default function ARCamera({
         y: part.y + dy / faceWidth,
       });
       if (autoAnchors) onSnapAnchors();
+    } else if (dragTarget === 'templeBody') {
+      // Right-click drag: move entire temple (both anchors together)
+      const ang = -(smoothedRef.current.angle || 0);
+      const cos = Math.cos(ang);
+      const sin = Math.sin(ang);
+      const mdx = -dx;
+      const localDx = mdx * cos - dy * sin;
+      const localDy = mdx * sin + dy * cos;
+      const relDx = localDx / faceWidth;
+      const relDy = localDy / faceWidth;
+
+      // Move both anchors by the same amount
+      onUpdatePart(editingPart, {
+        anchorFrame: {
+          x: part.anchorFrame.x + relDx,
+          y: part.anchorFrame.y + relDy,
+        },
+        anchorEar: {
+          x: part.anchorEar.x + relDx,
+          y: part.anchorEar.y + relDy,
+        },
+      });
     } else if (dragTarget === 'anchorFrame' || dragTarget === 'anchorEar') {
       const ang = -(smoothedRef.current.angle || 0);
       const cos = Math.cos(ang);
@@ -425,6 +477,7 @@ export default function ARCamera({
     if (isDragging) {
       setIsDragging(false);
       setDragTarget(null);
+      setIsRightClickDrag(false);
       onPushHistory();
     }
   }, [isDragging, onPushHistory]);
@@ -434,9 +487,9 @@ export default function ARCamera({
     e.preventDefault();
     e.stopPropagation();
 
-    // Always zoom the camera view (min 100%, max 170%)
+    // Always zoom the camera view (min 100%, max 300%)
     const delta = -Math.sign(e.deltaY) * 0.1;
-    const newZoom = Math.min(Math.max(1.0, cameraZoom + delta), 1.7);
+    const newZoom = Math.min(Math.max(1.0, cameraZoom + delta), 3.0);
     setCameraZoom(newZoom);
   }, [cameraZoom]);
 
