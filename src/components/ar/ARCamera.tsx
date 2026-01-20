@@ -222,7 +222,7 @@ export default function ARCamera({
       const p = model.parts[side];
       if (!p.img || !isLookingSide) return;
 
-      const HIDE_THRESHOLD = 0.03;
+      const HIDE_THRESHOLD = 0.08;
       let opacity = 1.0;
       if (side === 'left' && s.yaw! < -HIDE_THRESHOLD) opacity = 0;
       if (side === 'right' && s.yaw! > HIDE_THRESHOLD) opacity = 0;
