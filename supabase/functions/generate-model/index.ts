@@ -98,6 +98,57 @@ serve(async (req) => {
 
             if (!newLimits) throw new Error('Failed to create limits');
         } else {
+            // Check for Daily/Monthly Reset (Timezone: America/Sao_Paulo)
+            const now = new Date();
+            // Create dates in Brazil timezone for comparison
+            const brazilDateOptions: Intl.DateTimeFormatOptions = { timeZone: "America/Sao_Paulo", year: 'numeric', month: 'numeric', day: 'numeric' };
+            const todayBrazilString = now.toLocaleDateString("en-US", brazilDateOptions);
+
+            let shouldUpdate = false;
+            let newDailyCount = limits.daily_count;
+            let newMonthlyCount = limits.monthly_count;
+
+            if (limits.updated_at) {
+                const lastUpdate = new Date(limits.updated_at);
+                const lastUpdateBrazilString = lastUpdate.toLocaleDateString("en-US", brazilDateOptions);
+
+                // Check if day changed (compare date strings)
+                if (todayBrazilString !== lastUpdateBrazilString) {
+                    newDailyCount = 0;
+                    shouldUpdate = true;
+                    console.log('Resetting daily count (new day)');
+
+                    // Check if month changed (compare month parts of the string or object)
+                    const todayMonth = new Date(todayBrazilString).getMonth();
+                    const lastUpdateMonth = new Date(lastUpdateBrazilString).getMonth();
+
+                    if (todayMonth !== lastUpdateMonth) {
+                        newMonthlyCount = 0;
+                        console.log('Resetting monthly count (new month)');
+                    }
+                }
+            }
+
+            if (shouldUpdate) {
+                // Determine limits to keep - we only want to update counts
+                const { error: resetError } = await supabaseAdmin
+                    .from('model_generation_limits')
+                    .update({
+                        daily_count: newDailyCount,
+                        monthly_count: newMonthlyCount,
+                        updated_at: now.toISOString()
+                    })
+                    .eq('id', limits.id);
+
+                if (resetError) {
+                    console.error('Error resetting limits:', resetError);
+                } else {
+                    // Update local limits object so validation below uses reset values
+                    limits.daily_count = newDailyCount;
+                    limits.monthly_count = newMonthlyCount;
+                }
+            }
+
             // Verificar se atingiu limite
             if (limits.daily_count >= limits.daily_limit) {
                 throw new Error('Daily limit reached');

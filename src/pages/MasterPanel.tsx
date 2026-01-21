@@ -273,17 +273,38 @@ export default function MasterPanel() {
     try {
       const { data: limits } = await supabase
         .from('model_generation_limits')
-        .select('daily_limit, monthly_limit, daily_count, monthly_count')
+        .select('daily_limit, monthly_limit, daily_count, monthly_count, updated_at')
         .eq('profile_id', profile.id)
         .single();
 
       if (limits) {
+        let currentDailyCount = limits.daily_count || 0;
+        let currentMonthlyCount = limits.monthly_count || 0;
+
+        if (limits.updated_at) {
+          const now = new Date();
+          const brazilDateOptions: Intl.DateTimeFormatOptions = { timeZone: "America/Sao_Paulo", year: 'numeric', month: 'numeric', day: 'numeric' };
+          const todayBrazilString = now.toLocaleDateString("en-US", brazilDateOptions);
+          const lastUpdateBrazilString = new Date(limits.updated_at).toLocaleDateString("en-US", brazilDateOptions);
+
+          if (todayBrazilString !== lastUpdateBrazilString) {
+            currentDailyCount = 0;
+          }
+
+          // Check month change for UI consistency
+          const todayMonth = new Date(todayBrazilString).getMonth();
+          const lastUpdateMonth = new Date(lastUpdateBrazilString).getMonth();
+          if (todayMonth !== lastUpdateMonth) {
+            currentMonthlyCount = 0;
+          }
+        }
+
         setDailyLimit(limits.daily_limit);
         setMonthlyLimit(limits.monthly_limit);
         setStats(prev => ({
           ...prev,
-          dailyCount: limits.daily_count || 0,
-          monthlyCount: limits.monthly_count || 0
+          dailyCount: currentDailyCount,
+          monthlyCount: currentMonthlyCount
         }));
       } else {
         setDailyLimit(10);
