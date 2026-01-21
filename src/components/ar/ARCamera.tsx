@@ -572,7 +572,7 @@ export default function ARCamera({
           playsInline
           autoPlay
           muted
-          className="absolute top-0 left-0 w-full h-full object-cover opacity-0"
+          className="absolute top-0 left-0 w-full h-full object-contain opacity-0"
           style={{
             transform: `scaleX(-1) scale(${cameraZoom})`,
             transformOrigin: 'center center',
@@ -583,7 +583,7 @@ export default function ARCamera({
         {/* Output canvas */}
         <canvas
           ref={canvasRef}
-          className="absolute top-0 left-0 w-full h-full object-cover"
+          className="absolute top-0 left-0 w-full h-full object-contain"
           style={{
             transform: `scale(${cameraZoom})`,
             transformOrigin: 'center center',

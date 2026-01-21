@@ -476,7 +476,7 @@ export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ART
 
         <video
           ref={videoRef}
-          className="absolute w-full h-full object-cover opacity-0"
+          className="absolute w-full h-full object-contain opacity-0"
           playsInline
           muted
           style={{ transform: 'scaleX(-1)' }}
@@ -484,7 +484,7 @@ export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ART
 
         <canvas
           ref={canvasRef}
-          className="absolute w-full h-full object-cover"
+          className="absolute w-full h-full object-contain"
         />
       </div>
 
