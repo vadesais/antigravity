@@ -88,7 +88,7 @@ export default function VisagismoModal({
             // Filtro de gênero
             let matchesGender = false;
             if (gender === 'Unissex') {
-                matchesGender = true;
+                matchesGender = category.includes('unissex');
             } else if (gender === 'Masculino') {
                 matchesGender = category.includes('masculino') || category.includes('unissex');
             } else if (gender === 'Feminino') {
@@ -186,7 +186,7 @@ export default function VisagismoModal({
                             </p>
 
                             <div className="space-y-3">
-                                {(['Masculino', 'Feminino'] as const).map((option) => (
+                                {(['Masculino', 'Feminino', 'Unissex'] as const).map((option) => (
                                     <button
                                         key={option}
                                         onClick={() => handleGenderSelect(option)}

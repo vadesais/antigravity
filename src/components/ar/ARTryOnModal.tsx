@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { X, ShoppingCart, ArrowLeft, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ARViewer3D from './ARViewer3D';
 
 interface ARConfig {
   front?: string;
@@ -410,16 +411,16 @@ export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ART
   // Cleanup on unmount or close
   useEffect(() => {
     if (!isOpen) {
-      cleanup();
+      // Cleanup handled by ARViewer3D unmount
     }
-  }, [isOpen, cleanup]);
+  }, [isOpen]);
 
   // Handle back button
   useEffect(() => {
     if (!isOpen) return;
 
     const handlePopState = () => {
-      handleClose();
+      onClose();
     };
 
     window.history.pushState({ view: 'tryon' }, 'Provador', '#provador');
@@ -428,7 +429,7 @@ export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ART
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [isOpen, handleClose]);
+  }, [isOpen, onClose]);
 
   if (!isOpen || !glass) return null;
 
@@ -444,11 +445,10 @@ export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ART
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black flex flex-col">
-      {/* Header */}
       {/* Header - Clean Design */}
       <div className="absolute top-4 left-4 right-4 z-10 flex items-start justify-between">
         <button
-          onClick={handleClose}
+          onClick={onClose}
           className="flex items-center gap-2 text-white font-medium text-sm bg-black/20 backdrop-blur-md px-4 py-2 rounded-full hover:bg-black/30 transition shadow-sm border border-white/10"
         >
           <LayoutGrid className="w-4 h-4" />
@@ -463,29 +463,9 @@ export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ART
         </div>
       </div>
 
-      {/* Camera View */}
-      <div className="flex-1 relative flex items-center justify-center">
-        {isLoading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-30">
-            <div className="w-12 h-12 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin mb-4" />
-            <p className="text-base font-semibold text-slate-300 animate-pulse">
-              Inicializando câmera...
-            </p>
-          </div>
-        )}
-
-        <video
-          ref={videoRef}
-          className="absolute w-full h-full object-contain opacity-0"
-          playsInline
-          muted
-          style={{ transform: 'scaleX(-1)' }}
-        />
-
-        <canvas
-          ref={canvasRef}
-          className="absolute w-full h-full object-contain"
-        />
+      {/* 3D AR Viewer */}
+      <div className="flex-1 relative flex items-center justify-center bg-black">
+        <ARViewer3D glass={glass} />
       </div>
 
       {/* Footer */}

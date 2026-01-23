@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+import Advanced3DEditor from '../admin/Advanced3DEditor';
+
 interface EditingGlass {
   id: string;
   name: string;
@@ -60,6 +62,7 @@ export default function AREditor({
   onCategoriesChange
 }: AREditorProps) {
   const { toast } = useToast();
+  const [useLegacyEditor, setUseLegacyEditor] = useState(false);
   const {
     model,
     editingPart,
@@ -309,6 +312,184 @@ export default function AREditor({
       cover_image_url: coverImageUrl,
     });
   };
+
+  // State for 3D Publishing
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [pending3DData, setPending3DData] = useState<{ config: any; frontImage: string | null; templeImage: string | null } | null>(null);
+
+  const handle3DPublish = (data: { config: any; frontImage: string | null; templeImage: string | null }) => {
+    setPending3DData(data);
+    setIsPublishModalOpen(true);
+  };
+
+  const handleConfirmPublish = async () => {
+    if (!name) {
+      toast({ title: 'Nome obrigatório', variant: 'destructive' });
+      return;
+    }
+    if (!pending3DData?.frontImage) {
+      toast({ title: 'Erro na imagem', description: 'Imagem frontal não encontrada.', variant: 'destructive' });
+      return;
+    }
+
+    setIsPublishing(true);
+
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      let frontUrl = '';
+      let templeUrl = ''; // Future implementation if we store temple separately
+
+      // Upload Front Image (Processed)
+      if (pending3DData.frontImage) {
+        const fileName = `${profileId}/front-${Date.now()}.webp`; // Using WebP
+        const res = await fetch(pending3DData.frontImage);
+        const blob = await res.blob();
+
+        await supabase.storage.from('glasses-images').upload(fileName, blob, {
+          contentType: 'image/webp', upsert: false
+        });
+
+        const { data: { publicUrl } } = supabase.storage.from('glasses-images').getPublicUrl(fileName);
+        frontUrl = publicUrl;
+      }
+
+      // Upload Temple Image (Processed)
+      if (pending3DData.templeImage) {
+        const fileName = `${profileId}/temple-${Date.now()}.webp`;
+        const res = await fetch(pending3DData.templeImage);
+        const blob = await res.blob();
+
+        await supabase.storage.from('glasses-images').upload(fileName, blob, {
+          contentType: 'image/webp', upsert: false
+        });
+
+        const { data: { publicUrl } } = supabase.storage.from('glasses-images').getPublicUrl(fileName);
+        templeUrl = publicUrl;
+      }
+
+      // Merge config with URLs
+      const finalConfig = {
+        ...pending3DData.config,
+        temple_url: templeUrl, // Save temple URL in config
+        front_url_backup: frontUrl // Backup explicit reference
+      };
+
+      await onSave({
+        name,
+        price,
+        category,
+        image_url: frontUrl,
+        buy_link: buyLink,
+        ar_config: finalConfig,
+        cover_image_url: frontUrl, // Use front image as cover by default for 3D models
+      });
+
+      setIsPublishModalOpen(false);
+      setPending3DData(null);
+      toast({ title: 'Óculos publicado com sucesso!' });
+
+    } catch (error: any) {
+      console.error('Publish error:', error);
+      toast({ title: 'Erro ao publicar', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+
+  if (!useLegacyEditor) {
+    // Map editingGlass to initialData if available
+    const initialData = editingGlass ? {
+      config: editingGlass.ar_config,
+      frontUrl: editingGlass.image_url,
+      templeUrl: editingGlass.ar_config?.temple_url
+    } : null;
+
+    return (
+      <div className="relative w-full h-full min-h-screen bg-slate-50">
+        <Advanced3DEditor onPublish={handle3DPublish} initialData={initialData} />
+
+        <div className="fixed top-20 left-4 z-[60]">
+          <Button
+            onClick={() => setUseLegacyEditor(true)}
+            variant="secondary"
+            size="sm"
+            className="shadow-lg border border-slate-200 bg-white/90 backdrop-blur"
+          >
+            Voltar para Editor Padrão
+          </Button>
+        </div>
+
+        {/* Metadata Modal for 3D Publish */}
+        {isPublishModalOpen && (
+          <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-300">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-slate-900">Preencha os detalhes</h2>
+                <button onClick={() => setIsPublishModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Image Preview */}
+                <div className="flex justify-center mb-4">
+                  {pending3DData?.frontImage && (
+                    <div className="w-32 h-32 bg-slate-100 rounded-lg border border-slate-200 p-2 relative">
+                      <img src={pending3DData.frontImage} className="w-full h-full object-contain" />
+                      <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">3D</div>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label>Nome do Óculos *</Label>
+                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Ray-Ban Aviator" className="mt-1" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Preço (R$)</Label>
+                    <Input value={price} onChange={e => setPrice(formatPrice(e.target.value))} placeholder="0,00" className="mt-1" />
+                  </div>
+                  <div>
+                    <Label>Categoria</Label>
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white z-[100]">
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Link de Compra / WhatsApp</Label>
+                  <Input value={buyLink} onChange={e => setBuyLink(e.target.value)} placeholder="https://..." className="mt-1" />
+                </div>
+
+                <Button
+                  onClick={handleConfirmPublish}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 mt-4"
+                  disabled={isPublishing}
+                >
+                  {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                  Confirmar e Publicar
+                </Button>
+
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex flex-col lg:flex-row gap-8 items-start">

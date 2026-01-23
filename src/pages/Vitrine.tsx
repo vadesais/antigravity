@@ -7,6 +7,7 @@ import ARTryOnModal from '@/components/ar/ARTryOnModal';
 import CategoryFilterModal from '@/components/CategoryFilterModal';
 import VisagismoButton from '@/components/visagismo/VisagismoButton';
 import VisagismoModal from '@/components/visagismo/VisagismoModal';
+import VitrineLayout from '@/components/VitrineLayout';
 
 interface Profile {
   id: string;
@@ -199,6 +200,7 @@ export default function Vitrine() {
     );
   }
 
+  // Se houver erro ou não carregar o perfil
   if (error || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
@@ -217,223 +219,19 @@ export default function Vitrine() {
   const primaryColor = profile.store_color || '#2563eb';
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b border-slate-100">
-        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between">
-          {/* Logo - Clickable for admin access */}
-          <div
-            onClick={handleLogoClick}
-            className="cursor-pointer select-none flex items-center gap-2"
-          >
-            {profile.store_logo_url ? (
-              <img
-                src={profile.store_logo_url}
-                alt={profile.store_name || 'Logo'}
-                className="h-8 object-contain"
-                draggable={false}
-              />
-            ) : (
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 rounded flex items-center justify-center text-white font-medium text-base"
-                  style={{ backgroundColor: '#1a1a1a' }}
-                >
-                  {(profile.store_name || 'L')[0].toUpperCase()}
-                </div>
-                <span className="text-lg font-medium text-slate-900">
-                  {profile.store_name || 'Vitrine'}
-                </span>
-              </div>
-            )}
-          </div>
-
-
-        </div>
-      </header>
-
-      {/* Hero Banner */}
-      {profile.banner_url ? (
-        <section className="relative h-48 md:h-56 overflow-hidden">
-          <img
-            src={profile.banner_url}
-            alt="Banner"
-            className="w-full h-full object-cover"
-          />
-        </section>
-      ) : (
-        <section
-          className="relative h-32 md:h-40 flex items-center justify-center overflow-hidden bg-slate-50"
-        >
-          <div className="text-center z-10">
-            <h1 className="text-2xl md:text-3xl font-medium text-slate-900 mb-1">
-              {profile.store_name || 'Vitrine Virtual'}
-            </h1>
-            <p className="text-sm text-slate-500">Encontre o óculos perfeito para você</p>
-          </div>
-        </section>
-      )}
-
-      {/* Visagismo Digital Button */}
-      {profile.allow_visagismo && (
-        <div className="max-w-6xl mx-auto px-4 pt-6">
-          <VisagismoButton
-            onClick={() => setIsVisagismoOpen(true)}
-            primaryColor={primaryColor}
-          />
-        </div>
-      )}
-
-      {/* Glasses Collection */}
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Section Header with Filter Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <h2 className="text-xl font-medium text-slate-900">Coleção de Óculos</h2>
-
-          {/* Filtrar Produtos Button */}
-          <button
-            onClick={() => setIsFilterModalOpen(true)}
-            className="w-full sm:w-auto px-4 py-2 text-white text-sm font-medium rounded hover:opacity-90 transition flex items-center justify-center gap-2"
-            style={{ backgroundColor: primaryColor }}
-          >
-            <Filter className="w-4 h-4" />
-            filtrar produtos
-          </button>
-        </div>
-
-        {/* Glasses Grid */}
-        {filteredGlasses.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-slate-500">
-              {glasses.length === 0
-                ? 'Nenhum óculos disponível no momento.'
-                : 'Nenhum óculos nesta categoria.'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-            {filteredGlasses.map((glass) => {
-              // Format price
-              let priceDisplay = 'Consultar preço';
-              if (glass.price && parseFloat(glass.price.replace(',', '.')) > 0) {
-                let displayPrice = glass.price;
-                if (!displayPrice.includes(',')) {
-                  displayPrice = parseFloat(displayPrice || '0').toFixed(2).replace('.', ',');
-                }
-                priceDisplay = `R$ ${displayPrice}`;
-              }
-
-              const hasArConfig = glass.ar_config && Object.keys(glass.ar_config).length > 0;
-
-              return (
-                <div
-                  key={glass.id}
-                  className="bg-white rounded overflow-hidden border border-slate-200 flex flex-col hover:shadow-sm transition-shadow group"
-                >
-                  {/* Image Container */}
-                  <div className="aspect-square w-full bg-slate-50 flex items-center justify-center p-3 relative">
-                    <img
-                      src={glass.cover_image_url || glass.image_url}
-                      alt={glass.name}
-                      className="max-h-full max-w-full object-contain mix-blend-multiply"
-                    />
-                  </div>
-
-                  {/* Info */}
-                  <div className="p-3 flex flex-col gap-2 flex-grow">
-                    <div>
-                      <h4 className="font-medium text-slate-900 text-sm leading-tight line-clamp-2">
-                        {glass.name}
-                      </h4>
-                      <p className="text-slate-600 text-xs mt-0.5">
-                        {priceDisplay}
-                      </p>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="mt-auto flex flex-col gap-1.5">
-                      {/* Provador Button */}
-                      {profile.allow_camera !== false && hasArConfig ? (
-                        <button
-                          className="w-full text-white text-xs font-medium py-1.5 px-3 rounded hover:opacity-90 transition flex items-center justify-center gap-1.5"
-                          style={{ backgroundColor: primaryColor }}
-                          onClick={() => handleTryOn(glass)}
-                        >
-                          <Glasses className="w-3.5 h-3.5" />
-                          Provador Virtual
-                        </button>
-                      ) : (
-                        <button
-                          disabled
-                          className="w-full border border-slate-200 text-slate-400 text-xs font-medium py-1.5 px-3 rounded cursor-not-allowed flex items-center justify-center gap-1.5"
-                        >
-                          <Glasses className="w-3.5 h-3.5" />
-                          Provador Virtual
-                        </button>
-                      )}
-
-                      {/* Comprar Button */}
-                      {glass.buy_link ? (
-                        <a
-                          href={glass.buy_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-full bg-emerald-600 text-white text-xs font-medium py-1.5 px-3 rounded hover:bg-emerald-700 transition flex items-center justify-center gap-1.5 text-center no-underline"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          Comprar
-                        </a>
-                      ) : (profile.phone || (profile.wa_enabled && profile.wa_number)) ? (
-                        <button
-                          onClick={() => {
-                            let message = `Olá! Quero o modelo ${glass.name}`;
-
-                            if (profile.wa_enabled && profile.wa_message) {
-                              message = profile.wa_message.replace('{ref}', glass.name);
-                              // If {ref} is not used but message exists, append the glass name for context unless it already ends with ':' or similar, 
-                              // but for safety let's append it if {ref} wasn't found to ensure context.
-                              if (!profile.wa_message.includes('{ref}')) {
-                                message = `${profile.wa_message} ${glass.name}`;
-                              }
-                            }
-
-                            const phone = (profile.wa_enabled && profile.wa_number) ? profile.wa_number : profile.phone;
-                            const encodedMessage = encodeURIComponent(message);
-
-                            window.open(`https://wa.me/${phone?.replace(/\D/g, '')}?text=${encodedMessage}`, '_blank');
-                          }}
-                          className="w-full bg-emerald-600 text-white text-xs font-medium py-1.5 px-3 rounded hover:bg-emerald-700 transition flex items-center justify-center gap-1.5"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          Comprar
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )
-        }
-      </main >
-
-      {/* WhatsApp Floating Button */}
-      {
-        profile.phone && (
-          <button
-            onClick={handleWhatsAppClick}
-            className="fixed bottom-4 right-4 w-12 h-12 rounded-full bg-emerald-600 text-white shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center z-50"
-          >
-            <MessageCircle className="w-5 h-5" />
-          </button>
-        )
-      }
-
-      {/* Footer */}
-      <footer className="text-center py-4 text-xs text-slate-400 border-t border-slate-100 mt-12">
-        Powered by <span className="font-medium">Oprovadorvirtual.com.br</span>
-      </footer>
+    <>
+      <VitrineLayout
+        profile={profile}
+        glasses={filteredGlasses}
+        primaryColor={primaryColor}
+        onLogoClick={handleLogoClick}
+        onWhatsAppClick={handleWhatsAppClick}
+        onTryOn={handleTryOn}
+        onFilterClick={() => setIsFilterModalOpen(true)}
+        onVisagismoClick={() => setIsVisagismoOpen(true)}
+        loading={loading}
+        error={error}
+      />
 
       {/* AR Try-On Modal */}
       <ARTryOnModal
@@ -463,6 +261,6 @@ export default function Vitrine() {
         }}
         storeId={profile.id}
       />
-    </div >
+    </>
   );
 }

@@ -37,7 +37,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import AREditor from '@/components/ar/AREditor';
+import VitrinePreview from '@/components/admin/VitrinePreview';
 
 interface Glass {
   id: string;
@@ -70,7 +81,6 @@ export default function AdminPanel() {
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [allowModelCreation, setAllowModelCreation] = useState(false);
-  const [allowImage, setAllowImage] = useState(false);
 
   // Editor state
   const [editingGlass, setEditingGlass] = useState<Glass | null>(null);
@@ -89,14 +99,19 @@ export default function AdminPanel() {
   // Config state
   const [bannerUrl, setBannerUrl] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#2563eb');
+  const [primaryColor, setPrimaryColor] = useState('#000000');
   const [waEnabled, setWaEnabled] = useState(false);
   const [waNumber, setWaNumber] = useState('');
   const [waMessage, setWaMessage] = useState('');
+  const [storeName, setStoreName] = useState('');
+  const [allowVisagismo, setAllowVisagismo] = useState(false);
+  const [allowCamera, setAllowCamera] = useState(true);
+  const [phone, setPhone] = useState('');
 
   // Categories state
   const [categories, setCategories] = useState<string[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
   // Fetch profile slug for vitrine link
   const fetchProfileSlug = async () => {
@@ -104,7 +119,7 @@ export default function AdminPanel() {
     try {
       const { data } = await supabase
         .from('profiles')
-        .select('slug, allow_model_creation, allow_image')
+        .select('slug, allow_model_creation')
         .eq('id', profileId)
         .single();
       if (data?.slug) {
@@ -112,9 +127,6 @@ export default function AdminPanel() {
       }
       if (data?.allow_model_creation !== undefined) {
         setAllowModelCreation(data.allow_model_creation);
-      }
-      if (data?.allow_image !== undefined) {
-        setAllowImage(data.allow_image);
       }
     } catch (error) {
       console.error('Error fetching profile slug:', error);
@@ -186,6 +198,16 @@ export default function AdminPanel() {
   const handleAddCategory = async () => {
     if (!profileId || !newCategoryName.trim()) return;
 
+    // Validação prévia de categoria duplicada
+    if (categories.includes(newCategoryName.trim())) {
+      toast({
+        title: 'Erro ao adicionar',
+        description: 'Esta categoria já existe',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('categories')
@@ -222,6 +244,7 @@ export default function AdminPanel() {
 
       toast({ title: 'Categoria removida!' });
       fetchCategories();
+      setCategoryToDelete(null);
     } catch (error: any) {
       toast({
         title: 'Erro ao remover',
@@ -371,17 +394,21 @@ export default function AdminPanel() {
     try {
       const { data } = await supabase
         .from('profiles')
-        .select('banner_url, store_logo_url, store_color, wa_enabled, wa_number, wa_message')
+        .select('banner_url, store_logo_url, store_color, wa_enabled, wa_number, wa_message, store_name, allow_visagismo, allow_camera, phone')
         .eq('id', profileId)
         .single();
 
       if (data) {
         setBannerUrl(data.banner_url || '');
         setLogoUrl(data.store_logo_url || '');
-        setPrimaryColor(data.store_color || '#2563eb');
+        setPrimaryColor(data.store_color || '#000000');
         setWaEnabled(data.wa_enabled || false);
         setWaNumber(data.wa_number || '');
         setWaMessage(data.wa_message || '');
+        setStoreName(data.store_name || '');
+        setAllowVisagismo(data.allow_visagismo || false);
+        setAllowCamera(data.allow_camera !== false);
+        setPhone(data.phone || '');
       }
     } catch (error) {
       console.error('Error fetching config:', error);
@@ -402,6 +429,7 @@ export default function AdminPanel() {
           wa_enabled: waEnabled,
           wa_number: waNumber || null,
           wa_message: waMessage || null,
+          allow_visagismo: allowVisagismo,
         })
         .eq('id', profileId);
 
@@ -541,7 +569,7 @@ export default function AdminPanel() {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <div className="w-full px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
               <Glasses className="text-white w-5 h-5" />
@@ -555,8 +583,8 @@ export default function AdminPanel() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Vitrine Link - Hidden if allow_image is true */}
-            {profileSlug && !allowImage && (
+            {/* Vitrine Link */}
+            {profileSlug && (
               <div className="hidden md:flex items-center gap-2">
                 <button
                   onClick={handleCopyVitrineLink}
@@ -615,9 +643,9 @@ export default function AdminPanel() {
         </div>
       </header>
 
-      <main className="w-full max-w-7xl mx-auto p-6">
+      <main className="w-full px-6 py-6">
         {/* Mobile Vitrine Link */}
-        {profileSlug && !allowImage && (
+        {profileSlug && (
           <div className="md:hidden flex items-center justify-center gap-2 mb-4">
             <a
               href={getVitrineUrl()}
@@ -760,8 +788,6 @@ export default function AdminPanel() {
                   </SelectContent>
                 </Select>
 
-
-
                 {/* New Button */}
                 <Button
                   size="sm"
@@ -865,13 +891,12 @@ export default function AdminPanel() {
               </div>
             )}
           </div>
-        )
-        }
+        )}
 
         {/* CONFIG VIEW */}
         {
           viewMode === 'config' && (
-            <div className="max-w-2xl mx-auto">
+            <div className={configMenu === 'site' ? "w-full mx-auto transition-all duration-300" : "max-w-2xl mx-auto transition-all duration-300"}>
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
                 {configMenu === 'main' && (
                   <>
@@ -929,6 +954,22 @@ export default function AdminPanel() {
                           <ExternalLink className="w-4 h-4 text-slate-400" />
                         </button>
                       )}
+
+                      <button
+                        onClick={() => setConfigMenu('categories')}
+                        className="w-full p-4 rounded-xl border border-slate-200 hover:border-orange-300 hover:bg-orange-50 transition flex items-center gap-4 group"
+                      >
+                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                          <Layers className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <h3 className="font-bold text-slate-800 group-hover:text-orange-600">
+                            Gerenciar Categorias
+                          </h3>
+                          <p className="text-xs text-slate-500">Adicione ou remova categorias de produtos</p>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-slate-400" />
+                      </button>
                     </div>
                   </>
                 )}
@@ -945,85 +986,124 @@ export default function AdminPanel() {
                       <h2 className="text-xl font-bold text-slate-800">Personalização da Vitrine</h2>
                     </div>
 
-                    <div className="space-y-6">
-                      {/* Banner */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-bold text-slate-700">Banner do Topo</Label>
-                        <div className="relative w-full h-32 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 group">
-                          {bannerUrl ? (
-                            <img src={bannerUrl} className="w-full h-full object-cover" alt="Banner" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-400">
-                              Sem banner
-                            </div>
-                          )}
-                          <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
-                            <UploadCloud className="w-6 h-6 mb-1" />
-                            <span className="text-xs font-bold">Alterar Banner</span>
-                            <input type="file" className="hidden" accept="image/*" onChange={handleBannerUpload} />
-                          </label>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                      {/* Left Column: Editor Form */}
+                      <div className="lg:col-span-4 space-y-6">
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-4">
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            💡 As alterações feitas aqui são visualizadas ao lado em tempo real.
+                            Lembre-se de clicar em <strong>Salvar Alterações</strong> para publicar.
+                          </p>
                         </div>
-                      </div>
 
-                      {/* Logo */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-bold text-slate-700">Logo da Loja</Label>
-                        <div className="flex items-center gap-4">
-                          <div className="relative w-20 h-20 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 group flex-shrink-0 flex items-center justify-center">
-                            {logoUrl ? (
-                              <img src={logoUrl} className="w-full h-full object-contain p-2" alt="Logo" />
+                        {/* Banner */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-slate-700">Banner do Topo</Label>
+                          <div className="relative w-full h-32 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 group">
+                            {bannerUrl ? (
+                              <img src={bannerUrl} className="w-full h-full object-cover" alt="Banner" />
                             ) : (
-                              <span className="text-slate-400 text-xs text-center">Sem Logo</span>
+                              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                Sem banner
+                              </div>
                             )}
-                            <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white cursor-pointer transition-opacity">
-                              <Upload className="w-4 h-4" />
-                              <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                            <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition-opacity">
+                              <UploadCloud className="w-6 h-6 mb-1" />
+                              <span className="text-xs font-bold">Alterar Banner</span>
+                              <input type="file" className="hidden" accept="image/*" onChange={handleBannerUpload} />
                             </label>
                           </div>
-                          <div className="text-xs text-slate-500">
-                            Recomendado: PNG transparente.<br />Substitui o nome da loja no topo.
-                          </div>
                         </div>
-                      </div>
 
-                      {/* Colors */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-bold text-slate-700">Cor dos Botões</Label>
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="color"
-                            value={primaryColor}
-                            onChange={(e) => setPrimaryColor(e.target.value)}
-                            className="w-12 h-12 rounded cursor-pointer border-0 p-0"
-                          />
-                          <div className="flex-1">
-                            <div className="bg-slate-50 p-3 rounded border border-slate-100 flex gap-2 items-center">
-                              <span className="text-xs text-slate-500">Preview:</span>
-                              <button
-                                className="px-4 py-1.5 rounded text-white text-xs font-bold shadow-sm"
-                                style={{ backgroundColor: primaryColor }}
-                              >
-                                Botão Exemplo
-                              </button>
+                        {/* Logo */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-slate-700">Logo da Loja</Label>
+                          <div className="flex items-center gap-4">
+                            <div className="relative w-20 h-20 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 group flex-shrink-0 flex items-center justify-center">
+                              {logoUrl ? (
+                                <img src={logoUrl} className="w-full h-full object-contain p-2" alt="Logo" />
+                              ) : (
+                                <span className="text-slate-400 text-xs text-center">Sem Logo</span>
+                              )}
+                              <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white cursor-pointer transition-opacity">
+                                <Upload className="w-4 h-4" />
+                                <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                              </label>
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              Recomendado: PNG transparente.<br />Substitui o nome da loja no topo.
                             </div>
                           </div>
                         </div>
+
+                        {/* Colors */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-bold text-slate-700">Cor Principal</Label>
+                          <div className="flex items-center gap-4">
+                            <input
+                              type="color"
+                              value={primaryColor}
+                              onChange={(e) => setPrimaryColor(e.target.value)}
+                              className="w-12 h-12 rounded cursor-pointer border-0 p-0 shadow-sm"
+                            />
+                            <div className="text-xs text-slate-500 flex-1">
+                              Define a cor dos botões e destaques da sua vitrine.
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Visagismo Toggle */}
+                        <div className="bg-white p-4 rounded-lg border border-slate-200 flex items-center justify-between shadow-sm">
+                          <div className="space-y-0.5">
+                            <Label className="text-sm font-bold text-slate-700">Visagismo Digital</Label>
+                            <p className="text-xs text-slate-500">
+                              Habilitar botão de recomendação por IA na vitrine.
+                            </p>
+                          </div>
+                          <Switch
+                            checked={allowVisagismo}
+                            onCheckedChange={setAllowVisagismo}
+                          />
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-100">
+                          <Button
+                            className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-base shadow-lg shadow-blue-200"
+                            onClick={handleSaveConfig}
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Salvando...
+                              </>
+                            ) : (
+                              'Salvar Alterações'
+                            )}
+                          </Button>
+                        </div>
                       </div>
 
-                      <Button
-                        className="w-full bg-blue-600 hover:bg-blue-700"
-                        onClick={handleSaveConfig}
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Salvando...
-                          </>
-                        ) : (
-                          'Salvar Alterações'
-                        )}
-                      </Button>
+                      {/* Right Column: Realtime Preview */}
+                      <div className="lg:col-span-8 hidden lg:block">
+                        <div className="sticky top-6 h-[calc(100vh-100px)]">
+                          <VitrinePreview
+                            config={{
+                              bannerUrl,
+                              storeColor: primaryColor,
+                              storeLogoUrl: logoUrl,
+                              storeName,
+                              allowVisagismo,
+                              phone,
+                              waEnabled,
+                              waNumber,
+                              waMessage,
+                              allowCamera
+                            }}
+                            products={glasses}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </>
                 )}
@@ -1107,12 +1187,100 @@ export default function AdminPanel() {
                   </>
                 )}
 
+                {configMenu === 'categories' && (
+                  <>
+                    <div className="flex items-center gap-3 mb-6">
+                      <button
+                        onClick={() => setConfigMenu('main')}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"
+                      >
+                        <ArrowLeft className="w-4 h-4 text-slate-600" />
+                      </button>
+                      <h2 className="text-xl font-bold text-slate-800">Gerenciar Categorias</h2>
+                    </div>
+
+                    <div className="space-y-6">
+                      {/* Add Category */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-700">Nova Categoria</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            placeholder="Nome da categoria"
+                            onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
+                          />
+                          <Button
+                            onClick={handleAddCategory}
+                            className="bg-orange-600 hover:bg-orange-700"
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Adicionar
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Categories List */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-bold text-slate-700">Categorias Existentes</Label>
+                        {categories.length === 0 ? (
+                          <div className="text-center py-8 text-slate-400 border border-dashed border-slate-200 rounded-lg">
+                            <Layers className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">Nenhuma categoria cadastrada</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {categories.map((cat) => (
+                              <div
+                                key={cat}
+                                className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
+                              >
+                                <span className="font-medium text-slate-700">{cat}</span>
+                                <button
+                                  onClick={() => setCategoryToDelete(cat)}
+                                  className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition"
+                                  title="Remover categoria"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
 
               </div>
             </div>
           )
         }
-      </main >
-    </div >
+      </main>
+
+      {/* Alert Dialog for Category Deletion */}
+      <AlertDialog open={!!categoryToDelete} onOpenChange={(open) => !open && setCategoryToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a excluir a categoria <strong>"{categoryToDelete}"</strong>.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCategoryToDelete(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => categoryToDelete && handleDeleteCategory(categoryToDelete)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
