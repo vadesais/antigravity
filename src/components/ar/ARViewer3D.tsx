@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { FaceMesh } from '@mediapipe/face_mesh';
+
 import { Loader2 } from 'lucide-react';
 
 interface ARViewer3DProps {
@@ -35,7 +35,7 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             isTracking: false,
         };
 
-        let faceMesh: FaceMesh;
+        let faceMesh: any;
         let animationId: number;
         let stream: MediaStream | null = null;
 
@@ -48,8 +48,21 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                 state3D.params = { ...state3D.params, ...config };
             }
 
-            // Setup MediaPipe
-            faceMesh = new FaceMesh({ locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+            // Setup MediaPipe via CDN script
+            if (!window.FaceMesh) {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js';
+                script.crossOrigin = 'anonymous';
+                await new Promise<void>((resolve, reject) => {
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error('Failed to load MediaPipe'));
+                    document.head.appendChild(script);
+                });
+            }
+
+            faceMesh = new window.FaceMesh({
+                locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+            });
             faceMesh.setOptions({
                 maxNumFaces: 1,
                 refineLandmarks: true,
