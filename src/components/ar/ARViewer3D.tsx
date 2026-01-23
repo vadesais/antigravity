@@ -66,14 +66,30 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             handleResize();
 
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } });
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
-                    await new Promise(resolve => videoRef.current!.onloadeddata = resolve);
-                    await videoRef.current.play();
+                    await new Promise(resolve => {
+                        if (videoRef.current!.readyState >= 2) {
+                            resolve(true);
+                        } else {
+                            videoRef.current!.onloadeddata = () => resolve(true);
+                        }
+                    });
+                    try {
+                        await videoRef.current.play();
+                    } catch (playError) {
+                        console.error("Erro ao iniciar reprodução do vídeo:", playError);
+                    }
 
                     const loop = async () => {
-                        if (videoRef.current && videoRef.current.readyState === 4) {
+                        if (videoRef.current && videoRef.current.readyState >= 2) {
                             await faceMesh.send({ image: videoRef.current });
                         }
                         animationId = requestAnimationFrame(loop);
@@ -401,6 +417,7 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                 ref={videoRef}
                 className="absolute inset-0 w-full h-full object-cover"
                 playsInline
+                autoPlay
                 muted
             />
             <canvas
