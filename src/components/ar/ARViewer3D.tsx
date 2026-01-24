@@ -11,9 +11,12 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isLoading, setIsLoading] = React.useState(true);
 
     useEffect(() => {
         if (!glass) return;
+
+        setIsLoading(true);
 
         // === 3D ENGINE STATE (THREE.JS) ===
         const state3D: any = {
@@ -43,49 +46,66 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
         async function init() {
             // Merge saved config with defaults
             if (glass.ar_config) {
-                // Handle both flat params or nested structure if present
                 const config = glass.ar_config;
                 state3D.params = { ...state3D.params, ...config };
             }
 
-            // Setup MediaPipe via CDN script
-            if (!window.FaceMesh) {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js';
-                script.crossOrigin = 'anonymous';
-                await new Promise<void>((resolve, reject) => {
-                    script.onload = () => resolve();
-                    script.onerror = () => reject(new Error('Failed to load MediaPipe'));
-                    document.head.appendChild(script);
-                });
-            }
-
-            faceMesh = new window.FaceMesh({
-                locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-            });
-            faceMesh.setOptions({
-                maxNumFaces: 1,
-                refineLandmarks: true,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5
-            });
-            faceMesh.onResults(onFaceResults);
-
+            // Init 3D Scene immediately
             initThreeJS();
-            await loadTextures(); // Load images before starting loop
 
-            const resizeObserver = new ResizeObserver(() => handleResize());
-            if (containerRef.current) resizeObserver.observe(containerRef.current);
-            handleResize();
-
+            // Parallel loading: FaceMesh, Textures, Camera
             try {
-                stream = await navigator.mediaDevices.getUserMedia({
+                const faceMeshPromise = new Promise<any>(async (resolve) => {
+                    // Wait for global FaceMesh if not ready yet (handled by index.html script)
+                    if (!window.FaceMesh) {
+                        // Fallback check loop
+                        let attempts = 0;
+                        while (!window.FaceMesh && attempts < 20) {
+                            await new Promise(r => setTimeout(r, 200));
+                            attempts++;
+                        }
+                        if (!window.FaceMesh) throw new Error("FaceMesh libs not loaded");
+                    }
+
+                    const fm = new window.FaceMesh({
+                        locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+                    });
+                    fm.setOptions({
+                        maxNumFaces: 1,
+                        refineLandmarks: true,
+                        minDetectionConfidence: 0.5,
+                        minTrackingConfidence: 0.5
+                    });
+                    fm.onResults(onFaceResults);
+                    resolve(fm);
+                });
+
+                const texturesPromise = loadTextures();
+
+                const cameraPromise = navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: 'user',
                         width: { ideal: 640 },
                         height: { ideal: 480 }
                     }
                 });
+
+                // Wait for all critical resources
+                const [fmInstance, _, camStream] = await Promise.all([
+                    faceMeshPromise,
+                    texturesPromise,
+                    cameraPromise
+                ]);
+
+                faceMesh = fmInstance;
+                stream = camStream;
+
+                // Setup resize observer
+                const resizeObserver = new ResizeObserver(() => handleResize());
+                if (containerRef.current) resizeObserver.observe(containerRef.current);
+                handleResize();
+
+                // Start Video & Loop
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
                     await new Promise(resolve => {
@@ -95,11 +115,15 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                             videoRef.current!.onloadeddata = () => resolve(true);
                         }
                     });
+
                     try {
                         await videoRef.current.play();
                     } catch (playError) {
                         console.error("Erro ao iniciar reprodução do vídeo:", playError);
                     }
+
+                    // Ready to show!
+                    setIsLoading(false);
 
                     const loop = async () => {
                         if (videoRef.current && videoRef.current.readyState >= 2) {
@@ -111,7 +135,8 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                 }
 
             } catch (e) {
-                console.error("Erro ao iniciar câmera", e);
+                console.error("Erro na inicialização AR:", e);
+                setIsLoading(false); // Disable loading even on error to show something or error state
             }
         }
 
@@ -437,6 +462,13 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                 ref={canvasRef}
                 className="absolute inset-0 w-full h-full"
             />
+
+            {isLoading && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm" style={{ transform: 'scaleX(-1)' }}>
+                    <Loader2 className="w-10 h-10 text-white animate-spin mb-3" />
+                    <p className="text-white text-sm font-medium">Carregando provador...</p>
+                </div>
+            )}
         </div>
     );
 };

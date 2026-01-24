@@ -206,7 +206,7 @@ export default function Auth() {
             <Glasses className="h-8 w-8 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Lopix.app</CardTitle>
+            <CardTitle className="text-2xl font-bold">Provador Virtual</CardTitle>
             <CardDescription className="text-muted-foreground">
               Acesse o painel administrativo
             </CardDescription>
@@ -214,139 +214,59 @@ export default function Auth() {
         </CardHeader>
 
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
-            </TabsList>
+          <div className="w-full">
+            <form onSubmit={handleLogin} className="space-y-4" translate="no" autoComplete="off">
+              <div className="space-y-2">
+                <Label htmlFor="login-email">Email</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={errors.email ? 'border-destructive' : ''}
+                />
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email}</p>
+                )}
+              </div>
 
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4" translate="no" autoComplete="off">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
+              <div className="space-y-2">
+                <Label htmlFor="login-password">Senha</Label>
+                <div className="relative">
                   <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={errors.email ? 'border-destructive' : ''}
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={errors.password ? 'border-destructive pr-10' : 'pr-10'}
                   />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email}</p>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
+                {errors.password && (
+                  <p className="text-sm text-destructive">{errors.password}</p>
+                )}
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Senha</Label>
-                  <div className="relative">
-                    <Input
-                      id="login-password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={errors.password ? 'border-destructive pr-10' : 'pr-10'}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password}</p>
-                  )}
-                </div>
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <span className="flex items-center">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Entrando...
-                    </span>
-                  ) : (
-                    <span>Entrar</span>
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-store">Nome da Ótica</Label>
-                  <Input
-                    id="signup-store"
-                    type="text"
-                    placeholder="Minha Ótica"
-                    value={storeName}
-                    onChange={(e) => setStoreName(e.target.value)}
-                    className={errors.storeName ? 'border-destructive' : ''}
-                  />
-                  {errors.storeName && (
-                    <p className="text-sm text-destructive">{errors.storeName}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={errors.email ? 'border-destructive' : ''}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Senha</Label>
-                  <div className="relative">
-                    <Input
-                      id="signup-password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={errors.password ? 'border-destructive pr-10' : 'pr-10'}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="text-sm text-destructive">{errors.password}</p>
-                  )}
-                </div>
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Cadastrando...
-                    </>
-                  ) : (
-                    'Criar conta'
-                  )}
-                </Button>
-
-                <p className="text-xs text-center text-muted-foreground">
-                  Após o cadastro, aguarde aprovação do administrador.
-                </p>
-              </form>
-            </TabsContent>
-          </Tabs>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <span className="flex items-center">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Entrando...
+                  </span>
+                ) : (
+                  <span>Entrar</span>
+                )}
+              </Button>
+            </form>
+          </div>
         </CardContent>
       </Card>
     </div>

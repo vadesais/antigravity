@@ -1,4 +1,4 @@
-import { MessageCircle, Filter, Glasses, UploadCloud } from 'lucide-react';
+import { MessageCircle, Filter, Glasses, UploadCloud, ShoppingCart } from 'lucide-react';
 import VisagismoButton from '@/components/visagismo/VisagismoButton';
 import { Button } from '@/components/ui/button';
 
@@ -6,6 +6,7 @@ interface Profile {
     id: string;
     store_name: string | null;
     store_logo_url: string | null;
+    store_logo_rect_url: string | null;
     banner_url: string | null;
     store_color: string | null;
     allow_camera: boolean | null;
@@ -89,13 +90,25 @@ export default function VitrineLayout({
                         onClick={onLogoClick}
                         className={`cursor-pointer select-none flex items-center gap-2 ${isPreview ? 'pointer-events-auto' : ''}`}
                     >
-                        {profile.store_logo_url ? (
-                            <img
-                                src={profile.store_logo_url}
-                                alt={profile.store_name || 'Logo'}
-                                className="h-8 object-contain"
-                                draggable={false}
-                            />
+                        {(profile.store_logo_url || profile.store_logo_rect_url) ? (
+                            <div className="flex items-center gap-3">
+                                {profile.store_logo_url && (
+                                    <img
+                                        src={profile.store_logo_url}
+                                        alt={profile.store_name || 'Logo'}
+                                        className="h-10 object-contain"
+                                        draggable={false}
+                                    />
+                                )}
+                                {profile.store_logo_rect_url && (
+                                    <img
+                                        src={profile.store_logo_rect_url}
+                                        alt={profile.store_name || 'Logo'}
+                                        className="h-10 object-contain"
+                                        draggable={false}
+                                    />
+                                )}
+                            </div>
                         ) : (
                             <div className="flex items-center gap-2">
                                 <div
@@ -164,7 +177,7 @@ export default function VitrineLayout({
                         <p className="text-slate-500">Nenhum óculos disponível no momento.</p>
                     </div>
                 ) : (
-                    <div className={`grid gap-x-6 gap-y-10 md:gap-x-8 md:gap-y-16 ${isMobilePreview ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
+                    <div className={`grid gap-x-6 gap-y-10 md:gap-x-8 md:gap-y-16 ${isMobilePreview ? 'grid-cols-2' : 'grid-cols-2 xl:grid-cols-4'}`}>
                         {glasses.map((glass) => {
                             let priceDisplay = 'Consultar preço';
                             if (glass.price && parseFloat(glass.price.replace(',', '.')) > 0) {
@@ -205,11 +218,11 @@ export default function VitrineLayout({
                                     </div>
 
                                     {/* Action Buttons - Mobile: Col, Desktop: Row */}
-                                    <div className={`mt-auto flex gap-3 ${isMobilePreview ? 'flex-col' : 'flex-col md:flex-row'}`}>
+                                    <div className={`mt-auto flex gap-3 ${isMobilePreview ? 'flex-col' : 'flex-col xl:flex-row'}`}>
                                         {/* Provador Button */}
                                         {profile.allow_camera !== false && hasArConfig ? (
                                             <button
-                                                className={`flex-1 border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 text-sm font-medium transition flex items-center justify-center gap-2 whitespace-nowrap ${!isMobilePreview ? 'py-2.5 px-4 md:py-3' : 'py-2 px-1 text-xs'}`}
+                                                className={`flex-1 border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 text-sm font-medium transition flex items-center justify-center gap-2 whitespace-nowrap ${!isMobilePreview ? 'py-2.5 px-4 xl:py-3' : 'py-2 px-1 text-xs'}`}
                                                 onClick={isPreview ? undefined : () => onTryOn(glass)}
                                             >
                                                 <Glasses className={`${isMobilePreview ? 'w-3 h-3' : 'w-4 h-4'} flex-shrink-0`} />
@@ -218,7 +231,7 @@ export default function VitrineLayout({
                                         ) : (
                                             <button
                                                 disabled
-                                                className={`flex-1 border border-slate-200 text-slate-300 bg-slate-50 text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap ${!isMobilePreview ? 'py-2.5 px-4 md:py-3' : 'py-2 px-1 text-xs'}`}
+                                                className={`flex-1 border border-slate-200 text-slate-300 bg-slate-50 text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap ${!isMobilePreview ? 'py-2.5 px-4 xl:py-3' : 'py-2 px-1 text-xs'}`}
                                             >
                                                 <Glasses className={`${isMobilePreview ? 'w-3 h-3' : 'w-4 h-4'} flex-shrink-0`} />
                                                 Experimentar
@@ -227,10 +240,20 @@ export default function VitrineLayout({
 
                                         {/* Comprar Button */}
                                         <button
-                                            onClick={isPreview ? undefined : onWhatsAppClick}
-                                            className={`flex-1 bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-medium transition flex items-center justify-center gap-2 whitespace-nowrap ${!isMobilePreview ? 'py-2.5 px-4 md:py-3' : 'py-2 px-1 text-xs'}`}
+                                            onClick={isPreview ? undefined : () => {
+                                                if (glass.buy_link) {
+                                                    window.open(glass.buy_link, '_blank');
+                                                } else {
+                                                    onWhatsAppClick();
+                                                }
+                                            }}
+                                            className={`flex-1 bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-medium transition flex items-center justify-center gap-2 whitespace-nowrap ${!isMobilePreview ? 'py-2.5 px-4 xl:py-3' : 'py-2 px-1 text-xs'}`}
                                         >
-                                            <MessageCircle className={`${isMobilePreview ? 'w-3 h-3' : 'w-4 h-4'} flex-shrink-0`} />
+                                            {(glass.ar_config?.purchaseType === 'whatsapp' || glass.buy_link?.includes('whatsapp.com') || glass.buy_link?.includes('wa.me')) ? (
+                                                <MessageCircle className={`${isMobilePreview ? 'w-3 h-3' : 'w-4 h-4'} flex-shrink-0`} />
+                                            ) : (
+                                                <ShoppingCart className={`${isMobilePreview ? 'w-3 h-3' : 'w-4 h-4'} flex-shrink-0`} />
+                                            )}
                                             Comprar
                                         </button>
                                     </div>

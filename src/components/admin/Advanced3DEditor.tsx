@@ -8,19 +8,9 @@ import './Advanced3DEditor.css';
 // We use dangerouslySetInnerHTML to maintain the original structure and classes.
 const ORIGINAL_HTML_CONTENT = `
     <!-- Header -->
-    <header class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center sticky top-0 z-50 h-14">
-        <div class="flex items-center gap-2">
-            <div class="bg-indigo-600 p-1.5 rounded-lg">
-                <i data-lucide="box" class="text-white w-4 h-4"></i>
-            </div>
-            <h1 class="font-bold text-slate-800 text-base">Editor AR <span class="text-indigo-500 font-normal">True 3D</span></h1>
-        </div>
-        <div class="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-            Engine: Three.js
-        </div>
-    </header>
-
-    <main class="w-full max-w-[1600px] mx-auto p-4 flex flex-col lg:flex-row gap-4 items-start justify-center h-[calc(100vh-3.5rem)] overflow-hidden">
+    <!-- Header Removed for Clean Layout -->
+    
+    <main class="w-full h-full mx-auto p-2 flex flex-col lg:flex-row gap-2 items-stretch justify-center overflow-hidden">
 
         <!-- ESQUERDA: CÂMERA (3D Scene) -->
         <div class="w-full lg:flex-[1.5] flex flex-col items-center gap-2 relative h-full">
@@ -40,17 +30,11 @@ const ORIGINAL_HTML_CONTENT = `
 
                 <!-- UI Sobreposta (Editor) -->
                 <div id="editor-ui" class="absolute inset-0 z-20 flex flex-col justify-between p-4 pointer-events-none">
-                    <div class="flex justify-between items-start">
-                        <div class="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-                            <span class="text-xs font-bold text-white flex items-center gap-2" id="editing-label">
-                                <i data-lucide="sliders-horizontal" class="w-3 h-3"></i> Ajuste os sliders
-                            </span>
-                        </div>
-                    </div>
+                    <!-- Text removed as requested -->
                 </div>
             </div>
             
-            <div class="flex items-center gap-2 text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm text-xs">
+            <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 bg-white dark:bg-[#1e1e1e] px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm text-xs">
                 <i data-lucide="zoom-in" class="w-3 h-3 text-indigo-500"></i>
                 <span><b>Scroll</b>: Zoom • <b>Fundo</b>: Move posição</span>
             </div>
@@ -61,49 +45,61 @@ const ORIGINAL_HTML_CONTENT = `
 
             <!-- CABEÇALHO DO PAINEL -->
             <div class="flex items-center justify-between shrink-0">
-                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                     <i data-lucide="settings-2" class="w-5 h-5 text-indigo-600"></i> Personalização
                 </h2>
                 <div class="flex items-center gap-2">
-                    <!-- Novo Botão Salvar (Topo) -->
-                    <button onclick="window.saveTestConfig()" class="text-xs font-medium text-slate-900 hover:bg-slate-50 px-2 py-1 rounded border border-slate-900 transition-colors">
+                    <!-- Novo Botão Salvar (Topo) - OCULTO -->
+                    <button onclick="window.saveTestConfig()" class="hidden text-xs font-medium text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 px-2 py-1 rounded border border-slate-900 dark:border-slate-600 transition-colors">
                         Salvar
                     </button>
-                    <!-- Botão Resetar -->
-                    <button onclick="window.resetEditor()" class="text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded border border-red-100 transition-colors">
+                    <!-- Botão Resetar - OCULTO -->
+                    <button onclick="window.resetEditor()" class="hidden text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded border border-red-100 transition-colors">
                         Resetar
                     </button>
                 </div>
             </div>
 
             <!-- CATEGORIA: FRENTE -->
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-3 shrink-0">
-                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-1.5 uppercase tracking-wide">
-                    <i data-lucide="image" class="w-4 h-4 text-indigo-500"></i> Frente
-                </h3>
+            <div class="bg-white dark:bg-[#1e1e1e] p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2 shrink-0 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors" onclick="window.handleClickSection('front')">
+                <div class="group">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5 uppercase tracking-wide group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        <span class="flex items-center gap-2"><i data-lucide="image" class="w-4 h-4 text-indigo-500"></i> Frente</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-transform" id="icon-chevron-front"></i>
+                    </h3>
+                </div>
 
-                <!-- Upload Card Frente (Compact Label) -->
-                <label class="part-card p-2 rounded-lg cursor-pointer flex items-center gap-3 group transition-all border border-slate-100 bg-slate-50 hover:border-indigo-200 hover:bg-indigo-50/30 relative">
-                    <div class="w-8 h-8 bg-white rounded flex items-center justify-center border border-slate-200 overflow-hidden relative shadow-sm shrink-0">
+                <!-- Upload Card Frente (DIV not LABEL) -->
+                <div class="part-card p-2 rounded-lg flex items-center gap-3 border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 relative">
+                    <!-- Left: Preview Box -->
+                    <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 overflow-hidden relative shadow-sm shrink-0 flex items-center justify-center">
                         <img id="thumb-front" class="w-full h-full object-contain hidden">
-                        <i data-lucide="upload" class="text-slate-400 w-3.5 h-3.5" id="icon-front"></i>
+                        <i data-lucide="image-plus" class="text-slate-300 dark:text-slate-600 w-5 h-5" id="icon-front-placeholder"></i>
                     </div>
+                    
+                    <!-- Middle: Text -->
                     <div class="flex-1 min-w-0">
-                        <span class="text-sm font-bold text-slate-700 block truncate">Imagem da Frente</span>
-                        <span class="text-xs text-slate-400 block">Clique para alterar</span>
+                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">Imagem Frontal</span>
+                        <span class="text-xs text-slate-400 block">Clique no ícone para alterar</span>
                     </div>
-                    <input type="file" class="hidden" accept="image/png, image/jpeg" onchange="window.uploadTexture(this, 'front')">
-                </label>
+
+                    <!-- Right: Upload Icon (Acts as TRIGGER) -->
+                    <div class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 shrink-0 cursor-pointer hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-600 hover:border-indigo-200 transition-all" onclick="event.stopPropagation(); document.getElementById('input-front').click()">
+                        <i data-lucide="upload" class="w-4 h-4"></i>
+                    </div>
+
+                    <input type="file" id="input-front" class="hidden" accept="image/png, image/jpeg" onchange="window.uploadTexture(this, 'front')">
+                </div>
 
                 <!-- Sliders Frente (Oculto por padrão) -->
-                <div id="front-controls" class="space-y-2 hidden">
+                <div id="front-controls" class="space-y-2 hidden animate-in fade-in slide-in-from-top-2 duration-300">
                     <!-- Escala Geral -->
                     <div>
                         <div class="flex justify-between text-sm font-bold text-slate-500 mb-1">
                             <span>Tamanho (Escala)</span>
                             <span id="val-scale" class="bg-slate-100 px-1.5 rounded text-slate-700 font-mono">1.95</span>
                         </div>
-                        <input type="range" min="1.0" max="2.5" step="0.01" value="1.95" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('scale', this.value)">
+                        <input type="range" min="1.0" max="4.9" step="0.01" value="1.95" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('scale', this.value)">
                     </div>
 
                     <!-- Rotacionar (NOVO) -->
@@ -127,75 +123,88 @@ const ORIGINAL_HTML_CONTENT = `
             </div>
 
             <!-- CATEGORIA: HASTES -->
-            <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-3 shrink-0">
-                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-1.5 uppercase tracking-wide">
-                    <i data-lucide="arrow-right-left" class="w-4 h-4 text-indigo-500"></i> HASTES
-                </h3>
+            <div class="bg-white dark:bg-[#1e1e1e] p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2 shrink-0 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors" onclick="window.handleClickSection('temple')">
+                <div class="group">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5 uppercase tracking-wide group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        <span class="flex items-center gap-2"><i data-lucide="arrow-right-left" class="w-4 h-4 text-indigo-500"></i> Hastes</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-transform" id="icon-chevron-temple"></i>
+                    </h3>
+                </div>
 
-                <!-- Upload Card Hastes -->
-                <label class="part-card p-2 rounded-lg cursor-pointer flex items-center gap-3 group transition-all border border-slate-100 bg-slate-50 hover:border-indigo-200 hover:bg-indigo-50/30 relative mb-3">
-                    <div class="w-8 h-8 bg-white rounded flex items-center justify-center border border-slate-200 overflow-hidden relative shadow-sm shrink-0">
+                <!-- Upload Card Hastes (DIV not LABEL) -->
+                <div class="part-card p-2 rounded-lg flex items-center gap-3 border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 relative mb-3">
+                    <!-- Left: Preview Box -->
+                    <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 overflow-hidden relative shadow-sm shrink-0 flex items-center justify-center">
                         <img id="thumb-temple" class="w-full h-full object-contain hidden">
-                        <i data-lucide="upload" class="text-slate-400 w-3.5 h-3.5" id="icon-temple"></i>
+                        <i data-lucide="image-plus" class="text-slate-300 dark:text-slate-600 w-5 h-5" id="icon-temple-placeholder"></i>
                     </div>
+
+                    <!-- Middle: Text -->
                     <div class="flex-1 min-w-0">
-                        <span class="text-sm font-bold text-slate-700 block truncate">Imagem da Hastes</span>
-                        <span class="text-xs text-slate-400 block">Clique para alterar</span>
+                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">Imagem das Hastes</span>
+                        <span class="text-xs text-slate-400 block">Clique no ícone para alterar</span>
                     </div>
-                    <input type="file" class="hidden" accept="image/png, image/jpeg" onchange="window.uploadTexture(this, 'temple')">
-                </label>
+
+                    <!-- Right: Upload Icon (Acts as TRIGGER) -->
+                    <div class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 shrink-0 cursor-pointer hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-600 hover:border-indigo-200 transition-all" onclick="event.stopPropagation(); document.getElementById('input-temple').click()">
+                        <i data-lucide="upload" class="w-4 h-4"></i>
+                    </div>
+
+                    <input type="file" id="input-temple" class="hidden" accept="image/png, image/jpeg" onchange="window.uploadTexture(this, 'temple')">
+                </div>
                 
                 <!-- Controles das Hastes (Oculto por padrão) -->
-                <div id="temple-controls" class="hidden">
+                <div id="temple-controls" class="hidden animate-in fade-in slide-in-from-top-2 duration-300">
                     <!-- AREA DE CONTROLES UNIFICADA -->
-                    <div id="unified-controls" class="space-y-4 pt-1 animate-fade-in">
+                    <div id="unified-controls" class="space-y-4 pt-1">
                         
                         <!-- 1. Tamanho da hastes (Scale) -->
                         <div>
-                            <div class="flex justify-between text-sm font-bold text-slate-500 mb-1">
+                            <div class="flex justify-between text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">
                                 <span>Tamanho das hastes</span>
-                                <span id="val-templeScale" class="bg-white px-1.5 rounded text-slate-700 font-mono shadow-sm border border-slate-100">1.00</span>
+                                <span id="val-templeScale" class="bg-white dark:bg-slate-800 px-1.5 rounded text-slate-700 dark:text-slate-200 font-mono shadow-sm border border-slate-100 dark:border-slate-700">1.00</span>
                             </div>
-                            <input type="range" min="0.5" max="2.0" step="0.01" value="1.0" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('templeScale', this.value)">
+                            <input type="range" min="0.5" max="5.0" step="0.01" value="1.0" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('templeScale', this.value)">
                         </div>
 
                         <!-- 2. Tamanho Horizontal (Length) -->
                         <div>
-                            <div class="flex justify-between text-sm font-bold text-slate-500 mb-1">
+                            <div class="flex justify-between text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">
                                 <span>Tamanho Horizontal</span>
-                                <span id="val-templeLength" class="bg-white px-1.5 rounded text-slate-700 font-mono shadow-sm border border-slate-100">1.00</span>
+                                <span id="val-templeLength" class="bg-white dark:bg-slate-800 px-1.5 rounded text-slate-700 dark:text-slate-200 font-mono shadow-sm border border-slate-100 dark:border-slate-700">1.00</span>
                             </div>
-                            <input type="range" min="0.5" max="2.0" step="0.01" value="1.0" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('templeLength', this.value)">
+                            <input type="range" min="0.5" max="2.0" step="0.01" value="1.0" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('templeLength', this.value)">
                         </div>
 
                         <!-- 3. Inclinação (Tilt) -->
                         <div>
-                            <div class="flex justify-between text-sm font-bold text-slate-500 mb-1">
+                            <div class="flex justify-between text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">
                                 <span>Inclinação</span>
-                                <span id="val-tilt" class="bg-indigo-50 text-indigo-700 px-1.5 rounded font-mono">0°</span>
+                                <span id="val-tilt" class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-1.5 rounded font-mono">0°</span>
                             </div>
-                            <input type="range" min="-30" max="30" step="1" value="0" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('tilt', this.value)">
-                        </div>
-
-                         <!-- CONTROLES OCULTOS (GERENCIADOS PELO MOUSE) -->
-                        <div class="hidden">
-                             <!-- Pra cima / baixo (Y) -->
-                            <input type="range" id="inp-templeY" min="-1.0" max="1.0" step="0.01" value="0.21" oninput="window.update3DParam('templeY', this.value)">
-                             <!-- Pra frente / trás (Z) -->
-                            <input type="range" id="inp-templeZ" min="-0.5" max="0.2" step="0.01" value="0.0" oninput="window.update3DParam('templeZ', this.value)">
-                             <!-- Pra dentro / fora (X) -->
-                            <input type="range" id="inp-templeX" min="1.3" max="1.8" step="0.01" value="1.55" oninput="window.update3DParam('templeX', this.value)">
+                            <input type="range" min="-30" max="30" step="1" value="0" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('tilt', this.value)">
                         </div>
                     </div>
                 </div>
+                </div>
+                
+                <!-- Botão Seguir (Aparece sempre) -->
+                <div id="btn-follow-container" class="mt-4 pt-2 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <button id="btn-follow" onclick="window.publishAction()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-sm opacity-50">
+                        <span>Seguir</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
             </div>
 
-            <!-- Botão de Teste -->
             <!-- Botão de Publicar -->
-            <button onclick="window.publishAction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all mt-auto shrink-0 text-sm">
-                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                <span>Continuar</span>
-            </button>
+            <div class="sticky bottom-0 pt-4 pb-2 bg-white dark:bg-[#1e1e1e] z-10 mt-auto">
+                <button id="btn-publish" onclick="window.publishAction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-sm">
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    <span>Continuar</span>
+                </button>
+            </div>
         </div>
     
     <!-- TOAST NOTIFICATION -->
@@ -218,32 +227,33 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
         createIcons({ icons });
 
         // === TAB SWITCH LOGIC ===
-        (window as any).switchTempleTab = (tab: string) => {
-            const btnAdjust = document.getElementById('btn-tab-adjust');
-            const btnAdvanced = document.getElementById('btn-tab-advanced');
-            const contentAdjust = document.getElementById('tab-content-adjust');
-            const contentAdvanced = document.getElementById('tab-content-advanced');
+        // === TAB SWITCH LOGIC (Legacy - kept for safety) ===
+        (window as any).switchTempleTab = (tab: string) => { /* ... */ };
 
-            if (!btnAdjust || !btnAdvanced || !contentAdjust || !contentAdvanced) return;
+        // === NEW TOGGLE SECTION LOGIC ===
+        (window as any).toggleSection = (section: 'front' | 'temple') => {
+            const frontControls = document.getElementById('front-controls');
+            const templeControls = document.getElementById('temple-controls');
+            const chevronFront = document.getElementById('icon-chevron-front');
+            const chevronTemple = document.getElementById('icon-chevron-temple');
 
-            if (tab === 'adjust') {
-                btnAdjust.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
-                btnAdjust.classList.remove('bg-white', 'text-slate-600', 'border-slate-200');
+            if (section === 'front') {
+                // Show Front, Hide Temple
+                if (frontControls) frontControls.classList.remove('hidden');
+                if (templeControls) templeControls.classList.add('hidden');
 
-                btnAdvanced.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
-                btnAdvanced.classList.add('bg-white', 'text-slate-600', 'border-slate-200');
+                // Rotate chevrons
+                if (chevronFront) chevronFront.style.transform = 'rotate(180deg)';
+                if (chevronTemple) chevronTemple.style.transform = 'rotate(0deg)';
 
-                contentAdjust.classList.remove('hidden');
-                contentAdvanced.classList.add('hidden');
-            } else {
-                btnAdvanced.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
-                btnAdvanced.classList.remove('bg-white', 'text-slate-600', 'border-slate-200');
+            } else if (section === 'temple') {
+                // Show Temple, Hide Front
+                if (frontControls) frontControls.classList.add('hidden');
+                if (templeControls) templeControls.classList.remove('hidden');
 
-                btnAdjust.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
-                btnAdjust.classList.add('bg-white', 'text-slate-600', 'border-slate-200');
-
-                contentAdvanced.classList.remove('hidden');
-                contentAdjust.classList.add('hidden');
+                // Rotate chevrons
+                if (chevronFront) chevronFront.style.transform = 'rotate(0deg)';
+                if (chevronTemple) chevronTemple.style.transform = 'rotate(180deg)';
             }
         };
 
@@ -343,10 +353,22 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
                         if (icon) icon.classList.add('hidden');
 
                         const ctrls = document.getElementById('temple-controls');
-                        if (ctrls) ctrls.classList.remove('hidden');
+                        // if (ctrls) ctrls.classList.remove('hidden'); // REMOVED BY USER REQUEST (Start collapsed)
                     }
 
+
                     createGlassesMeshes();
+
+                    // Show Follow Button in Edit Mode (Always visible if editing)
+                    const btnFollow = document.getElementById('btn-follow-container');
+                    if (btnFollow) btnFollow.classList.remove('hidden');
+
+                    // Remove transparency
+                    const btnFollowObj = document.getElementById('btn-follow');
+                    if (btnFollowObj) btnFollowObj.classList.remove('opacity-50');
+
+                    // Button is now always visible
+                    // if (initialData.frontUrl || initialData.templeUrl) { ... }
                 };
                 restoreTextures();
 
@@ -761,8 +783,11 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
                 leftT.position.z = newZ;
                 rightT.position.z = newZ;
 
-                const baseRotLeft = (Math.PI / 2) - angleRad;
-                const baseRotRight = -(Math.PI / 2) + angleRad;
+                // AJUSTE MANUAL DE INCLINAÇÃO (Fechando as hastes para dentro)
+                // Ajustar Hastes Esquerda
+                const baseRotLeft = (Math.PI / 2) - angleRad - 0.0;
+                // Ajustar Hastes Direita
+                const baseRotRight = -(Math.PI / 2) + angleRad + 0.0;
 
                 leftT.rotation.y = baseRotLeft;
                 rightT.rotation.y = baseRotRight;
@@ -894,7 +919,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
         function uploadTexture(input: HTMLInputElement, type: string) {
             const file = input.files?.[0]; if (!file) return;
 
-            showToast("Processando imagem...", "info");
+            // showToast("Processando imagem...", "info"); // REMOVED BY USER REQUEST
 
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -904,14 +929,50 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
 
                     const processedImg = new Image();
                     processedImg.onload = () => {
-                        const thumb = document.getElementById(type === 'front' ? 'thumb-front' : 'thumb-temple') as HTMLImageElement;
-                        const icon = document.getElementById(type === 'front' ? 'icon-front' : 'icon-temple') as HTMLElement;
+                        const thumb = document.getElementById(`thumb-${type}`) as HTMLImageElement;
+                        const placeholder = document.getElementById(`icon-${type}-placeholder`);
 
                         if (thumb) {
                             thumb.src = finalSrc;
                             thumb.classList.remove('hidden');
                         }
-                        if (icon) icon.classList.add('hidden');
+                        if (placeholder) placeholder.classList.add('hidden');
+
+                        const controls = document.getElementById(`${type}-controls`);
+                        if (controls) controls.classList.remove('hidden');
+
+                        // REQ: Auto-hide Front controls if modifying Temple
+                        if (type === 'temple') {
+                            const frontCtrls = document.getElementById('front-controls');
+                            if (frontCtrls) frontCtrls.classList.add('hidden');
+
+                            // Update chevrons
+                            const chevronFront = document.getElementById('icon-chevron-front');
+                            if (chevronFront) chevronFront.style.transform = 'rotate(0deg)';
+                            const chevronTemple = document.getElementById('icon-chevron-temple');
+                            if (chevronTemple) chevronTemple.style.transform = 'rotate(180deg)';
+
+                            // Show Follow Button only for Temple upload
+                            const btnFollow = document.getElementById('btn-follow-container');
+                            if (btnFollow) btnFollow.classList.remove('hidden');
+                        } else {
+                            // Hide Follow Button if switch back to front (optional, but cleaner)
+                            // const btnFollow = document.getElementById('btn-follow-container');
+                            // if (btnFollow) btnFollow.classList.add('hidden');
+                        }
+
+                        // Remove transparency from Follow Button
+                        const btnFollowObj = document.getElementById('btn-follow');
+                        if (btnFollowObj) btnFollowObj.classList.remove('opacity-50');
+
+                        // Show Publish Button for ALL uploads
+                        // const btnPublish = document.getElementById('btn-publish');
+                        // if (btnPublish) btnPublish.classList.remove('hidden');
+
+                        // showToast(type === 'front' ? "Frente carregada!" : "Haste carregada!", "success"); // REMOVED BY USER REQUEST
+
+                        // Re-init icons to ensure any new state is rendered correctly
+                        createIcons({ icons });
 
                         const w = processedImg.width;
                         const h = processedImg.height;
@@ -971,7 +1032,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
                                     if (slider) slider.value = "1.55";
                                 }
 
-                                showToast("Imagem alinhada e otimizada!", "success");
+                                // showToast("Imagem alinhada e otimizada!", "success"); // REMOVED BY USER REQUEST
                             }
                         } else if (type === 'temple') {
                             const templeControls = document.getElementById('temple-controls');
@@ -1005,7 +1066,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
                                 if (sliderY) sliderY.value = "0.21";
                             }
 
-                            showToast("Haste alinhada e otimizada!", "success");
+                            // showToast("Haste alinhada e otimizada!", "success"); // REMOVED BY USER REQUEST
                         }
                         input.value = '';
                     };
@@ -1082,7 +1143,22 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
             const templeControls = document.getElementById('temple-controls');
             if (templeControls) templeControls.classList.add('hidden');
 
+            // Hide Follow Button
+            const btnFollow = document.getElementById('btn-follow-container');
+            if (btnFollow) btnFollow.classList.add('hidden');
+
             showToast("Cena resetada", "info");
+        }
+
+        function handleClickSection(type: string) {
+            // If no texture exists for this type, trigger upload
+            if (!state3D.textures[type]) {
+                const input = document.getElementById(`input-${type}`);
+                if (input) input.click();
+            } else {
+                // If texture exists, toggle the accordion
+                toggleSection(type);
+            }
         }
 
         function showToast(message: string, type = 'info') {
@@ -1104,6 +1180,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
         (window as any).uploadTexture = uploadTexture;
         (window as any).update3DParam = update3DParam;
         (window as any).saveTestConfig = saveTestConfig;
+        (window as any).handleClickSection = handleClickSection;
 
         (window as any).publishAction = () => {
             // Extract current images
@@ -1154,7 +1231,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
 
     return (
         <div
-            className="bg-slate-50 min-h-screen flex flex-col"
+            className="bg-slate-50 dark:bg-[#121212] h-full flex flex-col transition-colors duration-300"
             dangerouslySetInnerHTML={{ __html: ORIGINAL_HTML_CONTENT }}
         />
     );

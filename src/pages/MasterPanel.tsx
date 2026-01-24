@@ -25,7 +25,12 @@ import {
   Check,
   TrendingUp,
   Clock,
-  Calendar
+  Calendar,
+  Glasses,
+
+  Sun,
+  Moon,
+  Filter
 } from 'lucide-react';
 import {
   Select,
@@ -53,15 +58,29 @@ interface Profile {
   slug?: string | null;
   user_roles: { role: string }[];
   monthly_count?: number;
+  glasses_count?: number;
 }
 
 export default function MasterPanel() {
   const { signOut } = useAuth();
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [filteredProfiles, setFilteredProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiKey, setApiKey] = useState('');
   const [savingKey, setSavingKey] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [filterType, setFilterType] = useState<'all' | 'camera' | 'image' | 'models'>('all');
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   // Form state
   const [showForm, setShowForm] = useState(false);
@@ -121,11 +140,17 @@ export default function MasterPanel() {
         .from('model_generation_limits')
         .select('profile_id, monthly_count');
 
+      const { data: glassesData } = await supabase
+        .from('glasses')
+        .select('store_id');
+
       const profilesWithRoles = (profilesData || []).map(profile => {
         const limit = limitsData?.find(l => l.profile_id === profile.id);
+        const glassesCount = glassesData?.filter(g => g.store_id === profile.id).length || 0;
         return {
           ...profile,
           monthly_count: limit?.monthly_count || 0,
+          glasses_count: glassesCount,
           user_roles: (rolesData || [])
             .filter(r => r.user_id === profile.user_id)
             .map(r => ({ role: r.role }))
@@ -148,6 +173,18 @@ export default function MasterPanel() {
   useEffect(() => {
     fetchProfiles();
   }, [fetchProfiles]);
+
+  useEffect(() => {
+    let result = profiles;
+    if (filterType === 'camera') {
+      result = profiles.filter(p => p.allow_camera);
+    } else if (filterType === 'image') {
+      result = profiles.filter(p => p.allow_image);
+    } else if (filterType === 'models') {
+      result = profiles.filter(p => p.allow_model_creation);
+    }
+    setFilteredProfiles(result);
+  }, [profiles, filterType]);
 
   const resetForm = () => {
     setShowForm(false);
@@ -398,10 +435,10 @@ export default function MasterPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50" translate="no">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#121212] transition-colors duration-300" translate="no">
       {/* Header - Dark style like original */}
       <header className="w-full bg-slate-900 border-b border-slate-800 sticky top-0 z-20 shadow-md">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <div className="w-full px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-indigo-500 p-2 rounded-lg">
               <Shield className="text-white w-5 h-5" />
@@ -413,19 +450,61 @@ export default function MasterPanel() {
               <p className="text-xs text-slate-400">Gestão de Óticas e Acessos</p>
             </div>
           </div>
-          <button
-            onClick={signOut}
-            className="text-sm font-semibold text-slate-400 hover:text-white transition"
-          >
-            Sair (Voltar ao Site)
-          </button>
+
+          <div className="flex items-center gap-4">
+            {/* Filter Buttons */}
+            <div className="hidden md:flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700">
+              <button
+                onClick={() => setFilterType('all')}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterType === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                Todas
+              </button>
+              <div className="w-px h-4 bg-slate-700 mx-1"></div>
+              <button
+                onClick={() => setFilterType('camera')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterType === 'camera' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                title="Com Vitrine"
+              >
+                <Camera className="w-3 h-3" /> Vitrine
+              </button>
+              <button
+                onClick={() => setFilterType('image')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterType === 'image' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                title="Sem Vitrine"
+              >
+                <ImageIcon className="w-3 h-3" /> Imagem
+              </button>
+              <button
+                onClick={() => setFilterType('models')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterType === 'models' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                title="Modelos"
+              >
+                <Sparkles className="w-3 h-3" /> Modelos
+              </button>
+            </div>
+
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg hover:bg-slate-800 transition-colors text-slate-400 hover:text-yellow-400"
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
+            <button
+              onClick={signOut}
+              className="text-sm font-semibold text-slate-400 hover:text-white transition"
+            >
+              Sair
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-5xl mx-auto p-8">
+      <main className="flex-1 w-full p-8">
         {/* Global Config (API Key) */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
-          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+        <div className="bg-white dark:bg-[#1e1e1e] rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-8 transition-colors">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-4">
             <Server className="w-5 h-5 text-indigo-600" /> Configurações Globais
           </h2>
           <div className="flex gap-4 items-end">
@@ -488,6 +567,7 @@ export default function MasterPanel() {
                     value={storeName}
                     onChange={(e) => setStoreName(e.target.value)}
                     placeholder="Ex: Ótica Visão"
+                    className="bg-white dark:bg-white text-slate-900 border-slate-300 focus:border-indigo-500"
                   />
                 </div>
 
@@ -502,6 +582,7 @@ export default function MasterPanel() {
                         value={storeEmail}
                         onChange={(e) => setStoreEmail(e.target.value)}
                         placeholder="admin@otica.com"
+                        className="bg-white dark:bg-white text-slate-900 border-slate-300 focus:border-indigo-500"
                       />
                     </div>
                     <div>
@@ -512,6 +593,7 @@ export default function MasterPanel() {
                         value={storePass}
                         onChange={(e) => setStorePass(e.target.value)}
                         placeholder="Senha para a loja"
+                        className="bg-white dark:bg-white text-slate-900 border-slate-300 focus:border-indigo-500"
                       />
                     </div>
                   </>
@@ -696,13 +778,13 @@ export default function MasterPanel() {
           </div>
 
           {/* Lista de Óticas */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="lg:col-span-2 bg-white dark:bg-[#1e1e1e] rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 transition-colors">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Users className="w-5 h-5 text-indigo-600" /> Óticas Cadastradas
               </h2>
-              <span className="text-sm text-slate-500">
-                {profiles.filter(p => !p.user_roles.some(r => r.role === 'master')).length} óticas
+              <span className="text-sm text-slate-500 dark:text-slate-400">
+                {filteredProfiles.filter(p => !p.user_roles.some(r => r.role === 'master')).length} óticas
               </span>
             </div>
 
@@ -710,7 +792,7 @@ export default function MasterPanel() {
               <div className="flex justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
               </div>
-            ) : profiles.filter(p => !p.user_roles.some(r => r.role === 'master')).length === 0 ? (
+            ) : filteredProfiles.filter(p => !p.user_roles.some(r => r.role === 'master')).length === 0 ? (
               <div className="text-center py-12 text-slate-400">
                 <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Nenhuma ótica cadastrada ainda.</p>
@@ -718,7 +800,7 @@ export default function MasterPanel() {
               </div>
             ) : (
               <div className="space-y-3">
-                {profiles
+                {filteredProfiles
                   .filter(p => !p.user_roles.some(r => r.role === 'master'))
                   .map((profile) => (
                     <div
@@ -751,10 +833,10 @@ export default function MasterPanel() {
                             {(profile.store_name || 'O')[0].toUpperCase()}
                           </div>
                           <div>
-                            <h3 className="font-bold text-slate-800">
+                            <h3 className="font-bold text-slate-800 dark:text-slate-100">
                               {profile.store_name || 'Sem nome'}
                             </h3>
-                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                               {getRoleBadge(profile.user_roles)}
                               <span className="text-slate-300">•</span>
                               <span>{getPlanLabel(profile.plan)}</span>
@@ -770,15 +852,21 @@ export default function MasterPanel() {
                           {/* Feature badges */}
                           <div className="hidden sm:flex items-center gap-1 mr-2">
 
+                            {/* Glasses Count Badge */}
+                            <span className="h-6 px-1.5 rounded bg-blue-100 flex items-center justify-center gap-1" title={`${profile.glasses_count || 0} óculos publicados`}>
+                              <Glasses className="w-3 h-3 text-blue-600" />
+                              <span className="text-[10px] font-bold text-blue-700">{profile.glasses_count || 0}</span>
+                            </span>
+
                             {profile.allow_visagismo && (
                               <span className="w-6 h-6 rounded bg-green-100 flex items-center justify-center" title="Visagismo">
                                 <Eye className="w-3 h-3 text-green-600" />
                               </span>
                             )}
-                            {profile.allow_ai && (
-                              <span className="h-6 px-1.5 rounded bg-amber-100 flex items-center justify-center gap-1" title={`IA (${profile.monthly_count || 0} gerações)`}>
+
+                            {profile.allow_model_creation && (
+                              <span className="h-6 px-1.5 rounded bg-amber-100 flex items-center justify-center gap-1" title={`Criação de Modelos`}>
                                 <Sparkles className="w-3 h-3 text-amber-600" />
-                                <span className="text-[10px] font-bold text-amber-700">{profile.monthly_count || 0}</span>
                               </span>
                             )}
                           </div>

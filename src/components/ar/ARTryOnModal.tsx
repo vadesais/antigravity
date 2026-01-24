@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
-import { ShoppingCart, LayoutGrid } from 'lucide-react';
+
+import { ShoppingCart, LayoutGrid, ArrowLeft, Glasses, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ARViewer3D from './ARViewer3D';
 
@@ -71,20 +72,22 @@ export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ART
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black flex flex-col">
-      {/* Header - Clean Design */}
+      {/* Header */}
       <div className="absolute top-4 left-4 right-4 z-10 flex items-start justify-between">
+        {/* Top Left: Back Icon */}
         <button
           onClick={onClose}
-          className="flex items-center gap-2 text-white font-medium text-sm bg-black/20 backdrop-blur-md px-4 py-2 rounded-full hover:bg-black/30 transition shadow-sm border border-white/10"
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 shadow-sm hover:bg-black/30 transition text-white"
         >
-          <LayoutGrid className="w-4 h-4" />
-          Outros
+          <ArrowLeft className="w-5 h-5" />
         </button>
 
-        <div className="flex flex-col items-end gap-2">
+        {/* Top Right: Price Only */}
+        <div className="flex flex-col items-end gap-1">
           <div className="bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-sm text-right">
-            <p className="text-sm font-bold text-white leading-tight">{glass.name}</p>
-            <p className="text-xs text-white/90 font-medium">{priceText}</p>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-white/90 font-medium">{priceText}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -95,14 +98,30 @@ export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ART
       </div>
 
       {/* Footer */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 p-6 flex justify-center bg-gradient-to-t from-black/70 to-transparent">
-        <Button
-          onClick={handleBuy}
-          className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg shadow-green-600/30 flex items-center gap-2 text-base"
-        >
-          <ShoppingCart className="w-5 h-5" />
-          Comprar
-        </Button>
+      <div className="absolute bottom-6 left-6 right-6 z-10 pointer-events-none flex justify-center">
+        <div className="flex gap-3 w-full max-w-sm pointer-events-auto">
+          {/* Others Button */}
+          <button
+            onClick={onClose}
+            className="flex-1 flex items-center justify-center gap-2 text-white font-medium text-xs uppercase bg-black/40 backdrop-blur-md rounded-lg hover:bg-black/50 transition shadow-lg border border-white/10 h-10 tracking-wide"
+          >
+            <Glasses className="w-4 h-4" />
+            Outros
+          </button>
+
+          {/* Buy Button */}
+          <Button
+            onClick={handleBuy}
+            className="flex-1 bg-green-600 hover:bg-green-700 shadow-green-900/20 text-white font-medium text-xs uppercase rounded-lg shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-95 h-10 p-0 tracking-wide"
+          >
+            {(glass.ar_config?.purchaseType === 'whatsapp' || glass.buy_link?.includes('whatsapp.com') || glass.buy_link?.includes('wa.me')) ? (
+              <MessageCircle className="w-4 h-4" />
+            ) : (
+              <ShoppingCart className="w-4 h-4" />
+            )}
+            Comprar
+          </Button>
+        </div>
       </div>
     </div>
   );

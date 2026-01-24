@@ -111,3 +111,30 @@ input[type=range]::-webkit-slider-runnable-track {
     background: #e2e8f0;
     border-radius: 2px;
 }
+
+/* DARK MODE OVERRIDES */
+.dark .part-card.active {
+    border-color: #3b82f6;
+    background-color: rgba(37, 99, 235, 0.2);
+    /* semi-transparent blue */
+}
+
+.dark input[type=range]::-webkit-slider-runnable-track {
+    background: #334155;
+    /* slate-700 */
+}
+
+.dark input[type=range]::-webkit-slider-thumb {
+    background: #64748b;
+    /* slate-500 */
+}
+
+.dark input[type=range]:hover::-webkit-slider-thumb {
+    background: #94a3b8;
+    /* slate-400 */
+}
+
+.dark input[type=range]:active::-webkit-slider-thumb {
+    background: #3b82f6;
+    /* blue-600 */
+}

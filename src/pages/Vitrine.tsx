@@ -71,7 +71,7 @@ export default function Vitrine() {
       // Fetch profile by slug
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, store_name, store_logo_url, banner_url, store_color, allow_camera, allow_image, allow_visagismo, is_blocked, phone, wa_enabled, wa_number, wa_message')
+        .select('id, store_name, store_logo_url, store_logo_rect_url, banner_url, store_color, allow_camera, allow_image, allow_visagismo, is_blocked, phone, wa_enabled, wa_number, wa_message')
         .eq('slug', slug)
         .single();
 
@@ -117,6 +117,11 @@ export default function Vitrine() {
   useEffect(() => {
     fetchStoreData();
   }, [fetchStoreData]);
+
+  // Force Light Mode on Vitrine
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+  }, []);
 
   // Set up real-time subscription for glasses updates
   useEffect(() => {
