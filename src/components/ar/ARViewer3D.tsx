@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-import { Loader2 } from 'lucide-react';
+import { Loader2, Glasses } from 'lucide-react';
 
 interface ARViewer3DProps {
     glass: any; // Using any for flexibility with the glass object structure
@@ -122,8 +122,8 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                         console.error("Erro ao iniciar reprodução do vídeo:", playError);
                     }
 
-                    // Ready to show!
-                    setIsLoading(false);
+                    // SAFETY TIMEOUT: If nose not found in 4s, show camera anyway
+                    setTimeout(() => setIsLoading(false), 4000);
 
                     const loop = async () => {
                         if (videoRef.current && videoRef.current.readyState >= 2) {
@@ -141,48 +141,61 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
         }
 
         async function loadTextures() {
+            const promises = [];
+
             // Load Front Image
             if (glass.image_url) {
-                try {
-                    const img = new Image();
-                    img.crossOrigin = 'Anonymous';
-                    img.src = glass.image_url;
-                    await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
+                promises.push(new Promise<void>(async (resolve) => {
+                    try {
+                        const img = new Image();
+                        img.crossOrigin = 'Anonymous';
+                        img.src = glass.image_url;
+                        await new Promise((r) => { img.onload = r; img.onerror = r; });
 
-                    // Basic optimization (no rotation correction needed for display usually, but we scale it)
-                    const texture = new THREE.Texture(img);
-                    texture.colorSpace = THREE.SRGBColorSpace;
-                    texture.minFilter = THREE.LinearMipmapLinearFilter;
-                    texture.magFilter = THREE.LinearFilter;
-                    texture.generateMipmaps = true;
-                    texture.needsUpdate = true;
-                    state3D.textures.front = texture;
-                } catch (e) {
-                    console.error("Error loading front image", e);
-                }
+                        // OPTIMIZE IMAGE (Crop transparency to match Editor)
+                        const optimizedSrc = processAndOptimizeImage(img);
+                        const optimizedImg = new Image();
+                        optimizedImg.src = optimizedSrc;
+                        await new Promise((r) => { optimizedImg.onload = r; optimizedImg.onerror = r; });
+
+                        const texture = new THREE.Texture(optimizedImg);
+                        texture.colorSpace = THREE.SRGBColorSpace;
+                        texture.minFilter = THREE.LinearMipmapLinearFilter;
+                        texture.magFilter = THREE.LinearFilter;
+                        texture.generateMipmaps = true;
+                        texture.needsUpdate = true;
+                        state3D.textures.front = texture;
+                    } catch (e) {
+                        console.error("Error loading front image", e);
+                    }
+                    resolve();
+                }));
             }
 
-            // Load Temple Image (if available in config)
+            // Load Temple Image
             if (glass.ar_config && glass.ar_config.temple_url) {
-                try {
-                    const img = new Image();
-                    img.crossOrigin = 'Anonymous';
-                    img.src = glass.ar_config.temple_url;
-                    await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
+                promises.push(new Promise<void>(async (resolve) => {
+                    try {
+                        const img = new Image();
+                        img.crossOrigin = 'Anonymous';
+                        img.src = glass.ar_config.temple_url;
+                        await new Promise((r) => { img.onload = r; img.onerror = r; });
 
-                    const texture = new THREE.Texture(img);
-                    texture.colorSpace = THREE.SRGBColorSpace;
-                    texture.minFilter = THREE.LinearMipmapLinearFilter;
-                    texture.magFilter = THREE.LinearFilter;
-                    texture.generateMipmaps = true;
-                    texture.needsUpdate = true;
-                    state3D.textures.temple = texture;
-                } catch (e) {
-                    console.error("Error loading temple image", e);
-                }
+                        const texture = new THREE.Texture(img);
+                        texture.colorSpace = THREE.SRGBColorSpace;
+                        texture.minFilter = THREE.LinearMipmapLinearFilter;
+                        texture.magFilter = THREE.LinearFilter;
+                        texture.generateMipmaps = true;
+                        texture.needsUpdate = true;
+                        state3D.textures.temple = texture;
+                    } catch (e) {
+                        console.error("Error loading temple image", e);
+                    }
+                    resolve();
+                }));
             }
 
-            // Re-create meshes with loaded textures
+            await Promise.all(promises);
             createGlassesMeshes();
         }
 
@@ -302,6 +315,9 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                 state3D.renderer.render(state3D.scene, state3D.camera);
                 return;
             }
+
+            // SMART LOADING: Dismiss loader only when we actually track the face
+            if (isLoading) setIsLoading(false);
 
             const landmarks = results.multiFaceLandmarks[0];
             const video = videoRef.current;
@@ -450,6 +466,74 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             // Simple cleanup
         }
 
+        function processAndOptimizeImage(img: HTMLImageElement): string {
+            const rawCanvas = document.createElement('canvas');
+            rawCanvas.width = img.width;
+            rawCanvas.height = img.height;
+            const rawCtx = rawCanvas.getContext('2d');
+            if (!rawCtx) return img.src;
+
+            rawCtx.drawImage(img, 0, 0);
+            const rawData = rawCtx.getImageData(0, 0, rawCanvas.width, rawCanvas.height).data;
+
+            let m00 = 0, m10 = 0, m01 = 0;
+            for (let y = 0; y < rawCanvas.height; y += 4) {
+                for (let x = 0; x < rawCanvas.width; x += 4) {
+                    const idx = (y * rawCanvas.width + x) * 4 + 3;
+                    if (rawData[idx] > 20) {
+                        m00++;
+                        m10 += x;
+                        m01 += y;
+                    }
+                }
+            }
+
+            let angle = 0;
+            if (m00 > 0) {
+                const cx = m10 / m00;
+                const cy = m01 / m00;
+                let mu20 = 0, mu02 = 0, mu11 = 0;
+                for (let y = 0; y < rawCanvas.height; y += 4) {
+                    for (let x = 0; x < rawCanvas.width; x += 4) {
+                        const idx = (y * rawCanvas.width + x) * 4 + 3;
+                        if (rawData[idx] > 20) {
+                            mu20 += (x - cx) * (x - cx);
+                            mu02 += (y - cy) * (y - cy);
+                            mu11 += (x - cx) * (y - cy);
+                        }
+                    }
+                }
+                angle = 0.5 * Math.atan2(2 * mu11, mu20 - mu02);
+            }
+
+            // Crop
+            let minX = rawCanvas.width, minY = rawCanvas.height, maxX = 0, maxY = 0;
+            for (let y = 0; y < rawCanvas.height; y++) {
+                for (let x = 0; x < rawCanvas.width; x++) {
+                    const idx = (y * rawCanvas.width + x) * 4 + 3;
+                    if (rawData[idx] > 20) {
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+
+            if (maxX < minX) return img.src; // Empty
+            const w = maxX - minX + 1;
+            const h = maxY - minY + 1;
+            const cropCanvas = document.createElement('canvas');
+            cropCanvas.width = w;
+            cropCanvas.height = h;
+            const cropCtx = cropCanvas.getContext('2d');
+            if (cropCtx) {
+                cropCtx.drawImage(rawCanvas, minX, minY, w, h, 0, 0, w, h);
+                return cropCanvas.toDataURL();
+            }
+            return img.src;
+        }
+
     }, [glass]);
 
     return (
@@ -468,8 +552,8 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
 
             {isLoading && (
                 <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm" style={{ transform: 'scaleX(-1)' }}>
-                    <Loader2 className="w-10 h-10 text-white animate-spin mb-3" />
-                    <p className="text-white text-sm font-medium">Carregando provador...</p>
+                    <Glasses className="w-12 h-12 text-white animate-pulse mb-3" />
+                    <p className="text-white text-sm font-medium">Carregando provador virtual...</p>
                 </div>
             )}
         </div>
