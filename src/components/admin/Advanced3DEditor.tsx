@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import * as THREE from 'three';
-import { FaceMesh } from '@mediapipe/face_mesh';
+// import { FaceMesh } from '@mediapipe/face_mesh';
 import { createIcons, icons } from 'lucide';
 import './Advanced3DEditor.css';
 
@@ -289,13 +289,28 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
         const video = document.getElementById('video') as HTMLVideoElement;
         const canvas = document.getElementById('output-canvas') as HTMLCanvasElement;
         const container = document.getElementById('ar-scene-container') as HTMLElement;
-        let faceMesh: FaceMesh;
+        let faceMesh: any;
         let animationId: number;
 
         // === 1. INICIALIZAÇÃO ===
         async function init() {
             // Setup MediaPipe
-            faceMesh = new FaceMesh({ locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+
+            // Wait for global FaceMesh if not ready yet
+            if (!window.FaceMesh) {
+                let attempts = 0;
+                while (!window.FaceMesh && attempts < 50) { // 10 seconds timeout
+                    await new Promise(r => setTimeout(r, 200));
+                    attempts++;
+                }
+                if (!window.FaceMesh) {
+                    console.error("FaceMesh global not loaded!");
+                    showToast("Erro: Biblioteca FaceMesh não carregou.", "error");
+                    return;
+                }
+            }
+
+            faceMesh = new window.FaceMesh({ locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
             faceMesh.setOptions({
                 maxNumFaces: 1,
                 refineLandmarks: true,
