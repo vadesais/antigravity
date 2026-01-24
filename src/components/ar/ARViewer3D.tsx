@@ -419,8 +419,11 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                 leftT.position.z = newZ;
                 rightT.position.z = newZ;
 
-                const baseRotLeft = (Math.PI / 2) - angleRad;
-                const baseRotRight = -(Math.PI / 2) + angleRad;
+                // AJUSTE MANUAL DE INCLINAÇÃO (Fechando as hastes para dentro)
+                // Ajustar Hastes Esquerda
+                const baseRotLeft = (Math.PI / 2) - angleRad - 0.0;
+                // Ajustar Hastes Direita
+                const baseRotRight = -(Math.PI / 2) + angleRad + 0.0;
 
                 leftT.rotation.y = baseRotLeft;
                 rightT.rotation.y = baseRotRight;

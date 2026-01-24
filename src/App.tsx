@@ -5,14 +5,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import MasterPanel from "./pages/MasterPanel";
-import AdminPanel from "./pages/AdminPanel";
-import Vitrine from "./pages/Vitrine";
-import DirectTryOn from "./pages/DirectTryOn";
-import ModelCreationPage from "./pages/ModelCreationPage";
-import NotFound from "./pages/NotFound";
+import { Suspense, lazy } from "react";
+import VirtualTryOnLoader from "@/components/ui/VirtualTryOnLoader";
+
+// Lazy Load Pages
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const MasterPanel = lazy(() => import("./pages/MasterPanel"));
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
+const Vitrine = lazy(() => import("./pages/Vitrine"));
+const DirectTryOn = lazy(() => import("./pages/DirectTryOn"));
+const ModelCreationPage = lazy(() => import("./pages/ModelCreationPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -23,38 +27,40 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/vitrine/:slug" element={<Vitrine />} />
-            <Route path="/provador/:glassId" element={<DirectTryOn />} />
-            <Route
-              path="/master"
-              element={
-                <ProtectedRoute allowedRoles={['master']}>
-                  <MasterPanel />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'master']}>
-                  <AdminPanel />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/model-creation"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'master']}>
-                  <ModelCreationPage />
-                </ProtectedRoute>
-              }
-            />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<VirtualTryOnLoader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/vitrine/:slug" element={<Vitrine />} />
+              <Route path="/provador/:glassId" element={<DirectTryOn />} />
+              <Route
+                path="/master"
+                element={
+                  <ProtectedRoute allowedRoles={['master']}>
+                    <MasterPanel />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'master']}>
+                    <AdminPanel />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/model-creation"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'master']}>
+                    <ModelCreationPage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
