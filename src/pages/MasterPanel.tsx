@@ -373,20 +373,25 @@ export default function MasterPanel() {
     }
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', profileId);
+      setLoading(true);
+      // Call Edge Function to delete User (Auth + Data + Storage)
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: profileId }
+      });
 
       if (error) throw error;
-      toast({ title: 'Ótica excluída' });
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: 'Ótica e dados excluídos com sucesso' });
       fetchProfiles();
     } catch (error) {
+      console.error('Error deleting user:', error);
       toast({
         title: 'Erro ao excluir',
         description: (error instanceof Error ? error.message : 'Erro desconhecido'),
         variant: 'destructive',
       });
+      setLoading(false);
     }
   };
 

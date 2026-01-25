@@ -800,9 +800,9 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
 
                 // AJUSTE MANUAL DE INCLINAÇÃO (Fechando as hastes para dentro)
                 // Ajustar Hastes Esquerda
-                const baseRotLeft = (Math.PI / 2) - angleRad - 0.0;
+                const baseRotLeft = (Math.PI / 2) - angleRad + 0.1;
                 // Ajustar Hastes Direita
-                const baseRotRight = -(Math.PI / 2) + angleRad + 0.0;
+                const baseRotRight = -(Math.PI / 2) + angleRad - 0.1;
 
                 leftT.rotation.y = baseRotLeft;
                 rightT.rotation.y = baseRotRight;
@@ -820,7 +820,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
             state3D.renderer.render(state3D.scene, state3D.camera);
         }
 
-        function processAndOptimizeImage(img: HTMLImageElement): string {
+        function processAndOptimizeImage(img: HTMLImageElement, type: string): string {
             const rawCanvas = document.createElement('canvas');
             rawCanvas.width = img.width;
             rawCanvas.height = img.height;
@@ -900,7 +900,11 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
             const contentWidth = maxX - minX;
             const contentHeight = maxY - minY;
 
-            const MAX_WIDTH = 1024;
+            // Optimization Config
+            // Front: 800px (Balance quality/size)
+            // Temple: 512px (Small detail)
+            const MAX_WIDTH = type === 'temple' ? 512 : 800;
+
             let finalWidth = contentWidth;
             let finalHeight = contentHeight;
 
@@ -940,7 +944,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
             reader.onload = (e) => {
                 const img = new Image();
                 img.onload = () => {
-                    const finalSrc = processAndOptimizeImage(img);
+                    const finalSrc = processAndOptimizeImage(img, type); // Pass Type for dynamic resizing
 
                     const processedImg = new Image();
                     processedImg.onload = () => {
@@ -1210,7 +1214,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
                 const ctx = c.getContext('2d');
                 if (ctx) {
                     ctx.drawImage(img, 0, 0);
-                    frontImgData = c.toDataURL('image/webp', 1.0);
+                    frontImgData = c.toDataURL('image/webp', 0.8); // Optimization: 80% Quality
                 }
             }
 
@@ -1222,7 +1226,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
                 const ctx = c.getContext('2d');
                 if (ctx) {
                     ctx.drawImage(img, 0, 0);
-                    templeImgData = c.toDataURL('image/webp', 1.0);
+                    templeImgData = c.toDataURL('image/webp', 0.8); // Optimization: 80% Quality
                 }
             }
 

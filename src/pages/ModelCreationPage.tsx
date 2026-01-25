@@ -32,12 +32,15 @@ export default function ModelCreationPage() {
     }, [profileId]);
 
     // Polling para checar status
+    // Polling removed (Synchronous Generation)
+    /*
     useEffect(() => {
         if (generationId && step === 'generate') {
             const interval = setInterval(checkStatus, 3000);
             return () => clearInterval(interval);
         }
     }, [generationId, step]);
+    */
 
     const loadLimits = async () => {
         if (!profileId) return;
@@ -50,8 +53,20 @@ export default function ModelCreationPage() {
                 .single();
 
             if (error) {
-                // Se não encontrar (primeiro acesso), pode ser null ou erro
-                console.log('Limits not found or error:', error);
+                // If not found (406 or Row Missing), use Defaults so user can generate
+                console.log('Limits not found, assuming defaults.', error.code);
+                setLimits({
+                    id: 'temp',
+                    profile_id: profileId,
+                    daily_limit: 10,
+                    monthly_limit: 100,
+                    daily_count: 0,
+                    monthly_count: 0,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    last_daily_reset: new Date().toISOString(),
+                    last_monthly_reset: new Date().toISOString()
+                });
                 return;
             }
 
@@ -59,9 +74,23 @@ export default function ModelCreationPage() {
                 setLimits(data);
             }
         } catch (err) {
-            console.error('Error loading limits:', err);
+            console.error('Error loading limits, using defaults:', err);
+            setLimits({
+                id: 'temp',
+                profile_id: profileId,
+                daily_limit: 10,
+                monthly_limit: 100,
+                daily_count: 0,
+                monthly_count: 0,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                last_daily_reset: new Date().toISOString(),
+                last_monthly_reset: new Date().toISOString()
+            });
         }
-    };
+
+    }
+
 
     const handleGlassesUpload = async (file: File) => {
         setGlassesImage(file);
@@ -129,8 +158,27 @@ export default function ModelCreationPage() {
                 throw new Error(data.error || 'Erro ao gerar modelo');
             }
 
-            setGenerationId(data.generationId);
-            await loadLimits(); // Atualizar contador
+            // Client-Side Image Construction (No Server Storage)
+            if (data.base64) {
+                // Use Data URI directly - simpler and robust
+                const url = `data:image/png;base64,${data.base64}`;
+
+                setResult({
+                    id: data.generationId,
+                    profile_id: profileId || '',
+                    user_id: '',
+                    mode: mode,
+                    glasses_image_url: glassesImageUrl,
+                    created_at: new Date().toISOString(),
+                    status: 'completed',
+                    result_image_url: url // Local Blob URL
+                });
+
+                setStep('result');
+                await loadLimits();
+            } else {
+                throw new Error('No image returned from generation');
+            }
 
         } catch (err: any) {
             setError(err.message);
@@ -140,40 +188,8 @@ export default function ModelCreationPage() {
         }
     };
 
-    const checkStatus = async () => {
-        if (!generationId) return;
-
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-
-            const response = await fetch(
-                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-generation-status`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${session?.access_token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ generationId })
-                }
-            );
-
-            const data = await response.json();
-
-            if (data.success && data.generation) {
-                if (data.generation.status === 'completed') {
-                    setResult(data.generation);
-                    await loadLimits(); // Atualizar limites/contador
-                    setStep('result');
-                } else if (data.generation.status === 'failed') {
-                    setError(data.generation.error_message || 'Erro ao gerar modelo');
-                    setStep('config');
-                }
-            }
-        } catch (err: any) {
-            console.error('Error checking status:', err);
-        }
-    };
+    // Polling Removed (Synchronous Generation)
+    const checkStatus = async () => { };
 
     const handleNewGeneration = () => {
         setStep('upload');

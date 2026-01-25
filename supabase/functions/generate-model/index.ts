@@ -32,7 +32,8 @@ The output image MUST be a PORTRAIT with aspect ratio 4:5 (1080x1350).
 If the input "Model Image" is landscape/wide, you MUST CROP IT to a vertical 4:5 format centered on the face.
 DO NOT generate wide images. The output MUST be taller than it is wide.
 Output ONLY one single image.`,
-        keepScenario: `Preserve the original background as much as possible, but CROP the image to fill the 4:5 vertical frame. Do NOT keep the original aspect ratio if it is not 4:5.`,
+        keepScenario: `Preserve the original background as much as possible and DO NOT crop the image.
+Maintain the original aspect ratio, even if it is not 4:5.`,
         newScenario: `Change the background to: {SCENARIO_DESC} (but keep the face lighting natural).`
     }
 };
@@ -176,14 +177,24 @@ serve(async (req) => {
 
         // 5. Incrementar contador movido para processWithGemini (após sucesso)
 
-        // 6. Processar com Gemini (assíncrono)
-        processWithGemini(generation.id, mode, glassesImageUrl, config, supabaseAdmin);
+        // 6. Processar com Gemini (Agora SÍNCRONO)
+        const result = await processWithGemini(generation.id, mode, glassesImageUrl, config, supabaseAdmin);
+
+        // Atualizar status para completed (sem salvar URL)
+        await supabaseAdmin
+            .from('model_generations')
+            .update({
+                status: 'completed',
+                completed_at: new Date().toISOString()
+            })
+            .eq('id', generation.id);
 
         return new Response(
             JSON.stringify({
                 success: true,
                 generationId: generation.id,
-                message: 'Generation started'
+                base64: result.base64, // RETURNING DIRECTLY TO CLIENT
+                message: 'Generation completed'
             }),
             {
                 headers: {
@@ -297,7 +308,25 @@ async function processWithGemini(
                     topK: 32,
                     topP: 1,
                     maxOutputTokens: 4096,
-                }
+                },
+                safetySettings: [
+                    {
+                        category: "HARM_CATEGORY_HARASSMENT",
+                        threshold: "BLOCK_ONLY_HIGH"
+                    },
+                    {
+                        category: "HARM_CATEGORY_HATE_SPEECH",
+                        threshold: "BLOCK_ONLY_HIGH"
+                    },
+                    {
+                        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        threshold: "BLOCK_ONLY_HIGH"
+                    },
+                    {
+                        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                        threshold: "BLOCK_ONLY_HIGH"
+                    }
+                ]
             })
         });
 
@@ -338,36 +367,9 @@ async function processWithGemini(
             throw new Error('Gemini não retornou imagem nem mensagem de erro clara. Verifique os logs.');
         }
 
-        // Upload para Supabase Storage
-        const imageBuffer = Uint8Array.from(atob(generatedImageBase64), c => c.charCodeAt(0));
-        const fileName = `${generationId}.png`;
-
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('model-generations')
-            .upload(fileName, imageBuffer, {
-                contentType: 'image/png',
-                upsert: true
-            });
-
-        if (uploadError) throw uploadError;
-
-        // Obter URL pública
-        const { data: { publicUrl } } = supabase.storage
-            .from('model-generations')
-            .getPublicUrl(fileName);
-
-        // Atualizar registro
-        await supabase
-            .from('model_generations')
-            .update({
-                result_image_url: publicUrl,
-                status: 'completed',
-                completed_at: new Date().toISOString()
-            })
-            .eq('id', generationId);
+        // NO STORAGE UPLOAD HERE! Just return the data.
 
         // Incrementar contador após sucesso
-        // Primeiro buscar limites atuais para garantir precisão
         const { data: currentLimits } = await supabase
             .from('model_generation_limits')
             .select('*')
@@ -385,6 +387,46 @@ async function processWithGemini(
                 .eq('profile_id', config.profileId);
         }
 
+        // ======= PRIVACY CLEANUP =======
+        // Delete input images from Storage immediately after use
+        try {
+            console.log('Cleaning up input images for privacy...');
+            const filesToDelete: string[] = [];
+
+            // Helper to extract path from URL (assuming standard Supabase Storage URL structure)
+            // URL format: .../storage/v1/object/public/bucket-name/folder/file.ext
+            const extractPath = (url: string) => {
+                const match = url.match(/\/model-generations\/(.+)$/);
+                return match ? match[1] : null; // returns 'glasses/123.png'
+            };
+
+            const glassesPath = extractPath(glassesImageUrl);
+            if (glassesPath) filesToDelete.push(glassesPath);
+
+            if (mode === 'photo' && config.userPhotoUrl) {
+                const userPath = extractPath(config.userPhotoUrl);
+                if (userPath) filesToDelete.push(userPath);
+            }
+
+            if (filesToDelete.length > 0) {
+                const { error: deleteError } = await supabase.storage
+                    .from('model-generations')
+                    .remove(filesToDelete); // uses Admin client to ensure permission
+
+                if (deleteError) {
+                    console.error('Error deleting input images:', deleteError);
+                } else {
+                    console.log('Input images deleted successfully:', filesToDelete);
+                }
+            }
+        } catch (cleanupError) {
+            console.error('Unexpected error during cleanup:', cleanupError);
+            // Non-blocking: don't fail the request if cleanup fails
+        }
+        // ===============================
+
+        return { base64: generatedImageBase64 };
+
     } catch (error) {
         console.error('Processing error:', error);
 
@@ -397,6 +439,8 @@ async function processWithGemini(
                 completed_at: new Date().toISOString()
             })
             .eq('id', generationId);
+
+        throw error;
     }
 }
 

@@ -46,6 +46,19 @@ interface VitrineLayoutProps {
     isMobilePreview?: boolean;
 }
 
+// Helper to maximize performance with Supabase Image Transformation
+const getOptimizedImageUrl = (url: string, width: number) => {
+    if (!url) return '';
+    // Check if it's a Supabase Storage URL
+    if (url.includes('supabase.co/storage/v1/object/public')) {
+        // Supabase Image Transformation (if enabled/supported on project)
+        // Note: Standard Supabase Storage doesn't always support ?width= on public buckets without pro plan or image resizer, 
+        // but adding the param is harmless if unsupported (ignored) and vital if supported.
+        return `${url}?width=${width}&resize=contain`;
+    }
+    return url;
+};
+
 export default function VitrineLayout({
     profile,
     glasses,
@@ -198,8 +211,11 @@ export default function VitrineLayout({
                                     {/* Image Container - Clean, no border */}
                                     <div className="aspect-square w-full bg-white flex items-center justify-center relative overflow-hidden">
                                         <img
-                                            src={glass.cover_image_url || glass.image_url}
+                                            src={getOptimizedImageUrl(glass.cover_image_url || glass.image_url, 500)}
                                             alt={glass.name}
+                                            loading="lazy"
+                                            width="500"
+                                            height="500"
                                             className="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
                                         />
                                     </div>

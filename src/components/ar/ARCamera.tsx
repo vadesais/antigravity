@@ -54,35 +54,20 @@ export default function ARCamera({
   // Lerp function for smooth interpolation
   const lerp = (start: number, end: number, t: number) => start + (end - start) * t;
 
-  // Initialize MediaPipe FaceMesh
+  // Initialize MediaPipe FaceMesh using Singleton Service
   const initFaceMesh = useCallback(async () => {
-    // Load MediaPipe script dynamically
-    if (!window.FaceMesh) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js';
-      script.crossOrigin = 'anonymous';
-      await new Promise<void>((resolve, reject) => {
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error('Failed to load MediaPipe'));
-        document.head.appendChild(script);
-      });
+    try {
+      const { faceMeshService } = await import('@/services/faceMeshService');
+      const faceMesh = await faceMeshService.getFaceMesh();
+
+      faceMesh.onResults(onResults);
+      faceMeshRef.current = faceMesh;
+
+      await startVideo();
+    } catch (error) {
+      console.error('Failed to init FaceMesh:', error);
+      onLoadingChange(false);
     }
-
-    const faceMesh = new window.FaceMesh({
-      locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
-    });
-
-    faceMesh.setOptions({
-      maxNumFaces: 1,
-      refineLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5,
-    });
-
-    faceMesh.onResults(onResults);
-    faceMeshRef.current = faceMesh;
-
-    await startVideo();
   }, []);
 
   // Start video stream

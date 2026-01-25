@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 import { Loader2, Glasses } from 'lucide-react';
+import { faceMeshService } from '@/services/faceMeshService';
 
 interface ARViewer3DProps {
     glass: any; // Using any for flexibility with the glass object structure
@@ -53,31 +54,12 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             // Init 3D Scene immediately
             initThreeJS();
 
-            // Parallel loading: FaceMesh, Textures, Camera
+            // Parallel loading: FaceMesh (Singleton), Textures, Camera
             try {
-                const faceMeshPromise = new Promise<any>(async (resolve) => {
-                    // Wait for global FaceMesh if not ready yet (handled by index.html script)
-                    if (!window.FaceMesh) {
-                        // Fallback check loop
-                        let attempts = 0;
-                        while (!window.FaceMesh && attempts < 20) {
-                            await new Promise(r => setTimeout(r, 200));
-                            attempts++;
-                        }
-                        if (!window.FaceMesh) throw new Error("FaceMesh libs not loaded");
-                    }
-
-                    const fm = new window.FaceMesh({
-                        locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-                    });
-                    fm.setOptions({
-                        maxNumFaces: 1,
-                        refineLandmarks: true,
-                        minDetectionConfidence: 0.5,
-                        minTrackingConfidence: 0.5
-                    });
-                    fm.onResults(onFaceResults);
-                    resolve(fm);
+                // SINGLETON: Get the pre-warmed instance!
+                const faceMeshPromise = faceMeshService.getFaceMesh().then(fm => {
+                    fm.onResults(onFaceResults); // Re-attach callback for this component
+                    return fm;
                 });
 
                 const texturesPromise = loadTextures();
@@ -122,8 +104,10 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                         console.error("Erro ao iniciar reprodução do vídeo:", playError);
                     }
 
-                    // SAFETY TIMEOUT: If nose not found in 4s, show camera anyway
-                    setTimeout(() => setIsLoading(false), 4000);
+                    // SAFETY TIMEOUT: Increased to 15s to allow for slow first-time downloads
+                    setTimeout(() => {
+                        if (isLoading) setIsLoading(false);
+                    }, 15000);
 
                     const loop = async () => {
                         if (videoRef.current && videoRef.current.readyState >= 2) {
@@ -316,9 +300,6 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                 return;
             }
 
-            // SMART LOADING: Dismiss loader only when we actually track the face
-            if (isLoading) setIsLoading(false);
-
             const landmarks = results.multiFaceLandmarks[0];
             const video = videoRef.current;
             const container = containerRef.current;
@@ -369,9 +350,22 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                 state3D.currentPos.copy(nose);
                 state3D.currentQuat.copy(targetQuat);
                 state3D.isTracking = true;
+                state3D.trackingFrames = 0; // Reset counter on first lock
             } else {
                 state3D.currentPos.lerp(nose, smoothFactor);
                 state3D.currentQuat.slerp(targetQuat, smoothFactor);
+
+                // STABILIZATION BUFFER: Count successful tracking frames
+                state3D.trackingFrames = (state3D.trackingFrames || 0) + 1;
+            }
+
+            // SMART LOADING: ONLY dismiss loader after 10 frames of stable tracking (approx 200ms)
+            // AND ensure we actually have meshes to show
+            if (isLoading && state3D.trackingFrames > 10) {
+                const hasMeshes = state3D.glassesGroup.children.length > 0;
+                if (hasMeshes) {
+                    setIsLoading(false);
+                }
             }
 
             state3D.glassesGroup.position.copy(state3D.currentPos);
@@ -536,6 +530,42 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
 
     }, [glass]);
 
+    const [showLongLoadingMessage, setShowLongLoadingMessage] = React.useState(false);
+    const [typedText, setTypedText] = React.useState('');
+    const fullLongMessage = "Sua primeira vez usando esse provador, por isso está demorando um pouco para carregar, aguarde só mais alguns segundos ...";
+
+    // Timer for Long Loading Message
+    useEffect(() => {
+        if (!isLoading) {
+            setShowLongLoadingMessage(false);
+            setTypedText('');
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setShowLongLoadingMessage(true);
+        }, 3500); // 3.5s delay before showing the "First Time" message
+
+        return () => clearTimeout(timer);
+    }, [isLoading]);
+
+    // Typewriter Effect
+    useEffect(() => {
+        if (!showLongLoadingMessage) return;
+
+        let currentIndex = 0;
+        const typingInterval = setInterval(() => {
+            if (currentIndex <= fullLongMessage.length) {
+                setTypedText(fullLongMessage.slice(0, currentIndex));
+                currentIndex++;
+            } else {
+                clearInterval(typingInterval);
+            }
+        }, 50); // Speed of typing
+
+        return () => clearInterval(typingInterval);
+    }, [showLongLoadingMessage]);
+
     return (
         <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-black rounded-2xl" style={{ transform: 'scaleX(-1)' }}>
             <video
@@ -551,9 +581,24 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             />
 
             {isLoading && (
-                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm" style={{ transform: 'scaleX(-1)' }}>
-                    <Glasses className="w-12 h-12 text-white animate-pulse mb-3" />
-                    <p className="text-white text-sm font-medium">Carregando provador virtual...</p>
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md px-8 text-center" style={{ transform: 'scaleX(-1)' }}>
+                    <div className="relative mb-6">
+                        <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 rounded-full animate-pulse"></div>
+                        <Glasses className="relative w-16 h-16 text-white animate-bounce" />
+                    </div>
+
+                    {!showLongLoadingMessage ? (
+                        <p className="text-white text-lg font-medium animate-pulse">Carregando provador virtual</p>
+                    ) : (
+                        <div className="max-w-xs">
+                            <p className="text-white text-base font-medium leading-relaxed min-h-[60px]">
+                                {typedText}
+                                <span className="animate-pulse">|</span>
+                            </p>
+                        </div>
+                    )}
+
+                    <Loader2 className="w-6 h-6 text-white/50 animate-spin mt-6" />
                 </div>
             )}
         </div>

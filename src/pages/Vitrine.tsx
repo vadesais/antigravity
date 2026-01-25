@@ -116,6 +116,10 @@ export default function Vitrine() {
 
   useEffect(() => {
     fetchStoreData();
+    // Smart Preload: Start loading FaceMesh as soon as Vitrine opens
+    import('@/services/faceMeshService').then(({ faceMeshService }) => {
+      faceMeshService.preload();
+    });
   }, [fetchStoreData]);
 
   // Force Light Mode on Vitrine
