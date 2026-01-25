@@ -31,6 +31,14 @@ interface ARTryOnModalProps {
 }
 
 export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ARTryOnModalProps) {
+  // DEBUG LINK WHATSAPP
+  console.log('ARTryOnModal Render:', {
+    glassId: glass?.id,
+    priceRaw: glass?.price,
+    storePhone: storePhone,
+    hasPhone: !!storePhone,
+    conditionMet: (!glass?.price || parseFloat(glass?.price?.replace(',', '.') || '0') <= 0) && !!storePhone
+  });
 
   // Handle buy button
   const handleBuy = useCallback(() => {
@@ -82,13 +90,17 @@ export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ART
           <ArrowLeft className="w-5 h-5" />
         </button>
 
-        {/* Top Right: Price Only */}
+        {/* Top Right: Others Button (Styling of old Price tag) */}
         <div className="flex flex-col items-end gap-1">
-          <div className="bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-sm text-right">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-white/90 font-medium">{priceText}</span>
+          <button
+            onClick={onClose}
+            className="bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 shadow-sm text-right hover:bg-black/40 transition cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <Glasses className="w-4 h-4 text-white/90" />
+              <span className="text-sm text-white/90 font-medium uppercase tracking-wide">Outros</span>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -103,14 +115,23 @@ export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ART
       {/* Footer */}
       <div className="absolute bottom-6 left-6 right-6 z-10 pointer-events-none flex justify-center">
         <div className="flex gap-3 w-full max-w-sm pointer-events-auto">
-          {/* Others Button */}
-          <button
-            onClick={onClose}
-            className="flex-1 flex items-center justify-center gap-2 text-white font-medium text-xs uppercase bg-black/40 backdrop-blur-md rounded-lg hover:bg-black/50 transition shadow-lg border border-white/10 h-10 tracking-wide"
-          >
-            <Glasses className="w-4 h-4" />
-            Outros
-          </button>
+          {/* Price/Consult Button (Styling of old Others button) */}
+          {(!glass.price || parseFloat(glass.price.replace(',', '.')) <= 0) && storePhone ? (
+            <a
+              href={`https://wa.me/${storePhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Gostaria de saber o preço do óculos: ${glass.name}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 text-white font-medium text-xs uppercase bg-black/40 backdrop-blur-md rounded-lg hover:bg-black/50 transition shadow-lg border border-white/10 h-10 tracking-wide cursor-pointer"
+            >
+              <span className="truncate">{priceText}</span>
+            </a>
+          ) : (
+            <div
+              className="flex-1 flex items-center justify-center gap-2 text-white font-medium text-xs uppercase bg-black/40 backdrop-blur-md rounded-lg shadow-lg border border-white/10 h-10 tracking-wide"
+            >
+              <span className="truncate">{priceText}</span>
+            </div>
+          )}
 
           {/* Buy Button */}
           <Button

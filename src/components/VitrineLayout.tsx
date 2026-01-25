@@ -223,7 +223,7 @@ export default function VitrineLayout({
                                     {/* Info - Price Top, Name Serif Bottom */}
                                     <div className="flex flex-col gap-1 px-1">
                                         <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                                            {priceDisplay !== 'Consultar preço' ? priceDisplay : 'SOB CONSULTA'}
+                                            {priceDisplay !== 'Consultar preço' ? priceDisplay : 'CONSULTAR PREÇO'}
                                         </p>
                                         <h4
                                             className="text-xl text-slate-900 leading-tight"

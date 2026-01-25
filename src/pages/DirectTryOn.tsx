@@ -21,6 +21,8 @@ interface Profile {
     store_logo_url: string | null;
     store_color: string | null;
     slug: string | null;
+    wa_enabled: boolean | null;
+    wa_number: string | null;
 }
 
 export default function DirectTryOn() {
@@ -66,7 +68,7 @@ export default function DirectTryOn() {
                 // 2. Fetch Store Data
                 const { data: profileData, error: profileError } = await supabase
                     .from('profiles')
-                    .select('id, store_name, phone, store_logo_url, store_color, slug')
+                    .select('id, store_name, phone, store_logo_url, store_color, slug, wa_enabled, wa_number')
                     .eq('id', glassData.store_id)
                     .single();
 
@@ -89,30 +91,11 @@ export default function DirectTryOn() {
         fetchData();
     }, [glassId]);
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
-            </div>
-        );
-    }
+    // ... (rest of code) ...
 
-    if (error) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-                <div className="bg-white p-6 rounded-2xl shadow-lg max-w-sm text-center">
-                    <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                    <h1 className="text-lg font-bold text-slate-800 mb-2">{error}</h1>
-                    <p className="text-slate-500 text-sm">
-                        Verifique o link e tente novamente.
-                    </p>
-                </div>
-            </div>
-        );
-    }
+    // Determine correct phone number (Centralized WhatsApp logic)
+    const activePhone = (profile?.wa_enabled && profile?.wa_number) ? profile.wa_number : profile?.phone;
 
-    // Reuse ARTryOnModal in "standalone" mode
-    // We just render it conditionally when data is ready
     return (
         <>
             {/* Store Branding Header (Overlay) */}
@@ -147,7 +130,7 @@ export default function DirectTryOn() {
                             window.location.reload();
                         }
                     }}
-                    storePhone={profile?.phone}
+                    storePhone={activePhone}
                 />
             )}
         </>

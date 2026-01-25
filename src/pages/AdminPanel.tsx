@@ -63,6 +63,14 @@ interface Glass {
     ar_config: any;
     active: boolean;
     created_at: string;
+    whatsapp_contact_id?: string | null;
+}
+
+interface WhatsAppContact {
+    id: string;
+    name: string;
+    number: string;
+    is_default: boolean;
 }
 
 type ViewMode = 'editor' | 'list' | 'config';
@@ -103,9 +111,18 @@ export default function AdminPanel() {
     const [logoUrl, setLogoUrl] = useState('');
     const [logoRectUrl, setLogoRectUrl] = useState('');
     const [primaryColor, setPrimaryColor] = useState('#000000');
+
+    // Legacy single WA state (kept for compatibility syncing)
     const [waEnabled, setWaEnabled] = useState(false);
     const [waNumber, setWaNumber] = useState('');
     const [waMessage, setWaMessage] = useState('');
+
+    // Multi WA state
+    const [waContacts, setWaContacts] = useState<WhatsAppContact[]>([]);
+    const [waSlots, setWaSlots] = useState(1);
+    const [editingContact, setEditingContact] = useState<WhatsAppContact | null>(null); // For modal/form
+    const [isEditingContact, setIsEditingContact] = useState(false); // UI toggle
+
     const [storeName, setStoreName] = useState('');
     const [allowVisagismo, setAllowVisagismo] = useState(false);
     const [allowCamera, setAllowCamera] = useState(true);
@@ -149,7 +166,7 @@ export default function AdminPanel() {
         try {
             const { data } = await supabase
                 .from('profiles')
-                .select('slug, allow_model_creation')
+                .select('slug, allow_model_creation, whatsapp_slots')
                 .eq('id', profileId)
                 .single();
             if (data?.slug) {
@@ -157,6 +174,9 @@ export default function AdminPanel() {
             }
             if (data?.allow_model_creation !== undefined) {
                 setAllowModelCreation(data.allow_model_creation);
+            }
+            if (data?.whatsapp_slots !== undefined && data?.whatsapp_slots !== null) {
+                setWaSlots(data.whatsapp_slots);
             }
         } catch (error) {
             console.error('Error fetching profile slug:', error);
@@ -475,7 +495,7 @@ export default function AdminPanel() {
         try {
             const { data } = await supabase
                 .from('profiles')
-                .select('banner_url, store_logo_url, store_logo_rect_url, store_color, wa_enabled, wa_number, wa_message, store_name, allow_visagismo, allow_camera, phone')
+                .select('banner_url, store_logo_url, store_logo_rect_url, store_color, wa_enabled, wa_number, wa_message, store_name, allow_visagismo, allow_camera, phone, whatsapp_slots, whatsapp_contacts')
                 .eq('id', profileId)
                 .single();
 
@@ -491,6 +511,25 @@ export default function AdminPanel() {
                 setAllowVisagismo(data.allow_visagismo || false);
                 setAllowCamera(data.allow_camera !== false);
                 setPhone(data.phone || '');
+                setWaSlots((data as any).whatsapp_slots || 1);
+
+                // Multi-Whatsapp Init Logic
+                let contacts: WhatsAppContact[] = [];
+                if ((data as any).whatsapp_contacts && Array.isArray((data as any).whatsapp_contacts)) {
+                    contacts = (data as any).whatsapp_contacts;
+                }
+
+                // Migration: If no contacts but legacy number exists, create first contact
+                if (contacts.length === 0 && data.wa_number) {
+                    contacts.push({
+                        id: crypto.randomUUID(),
+                        name: 'Atendimento Principal',
+                        number: data.wa_number,
+                        is_default: true
+                    });
+                }
+
+                setWaContacts(contacts);
             }
         } catch (error) {
             console.error('Error fetching config:', error);
@@ -502,6 +541,10 @@ export default function AdminPanel() {
 
         setIsSubmitting(true);
         try {
+            // Sync legacy wa_number with default contact
+            const defaultContact = waContacts.find(c => c.is_default) || waContacts[0];
+            const syncWaNumber = defaultContact ? defaultContact.number : null;
+
             const { error } = await supabase
                 .from('profiles')
                 .update({
@@ -510,13 +553,18 @@ export default function AdminPanel() {
                     store_logo_rect_url: logoRectUrl || null,
                     store_color: primaryColor,
                     wa_enabled: waEnabled,
-                    wa_number: waNumber || null,
+                    wa_number: syncWaNumber, // Legacy sync
                     wa_message: waMessage || null,
                     allow_visagismo: allowVisagismo,
+                    whatsapp_contacts: waContacts as any // Save new JSON structure
                 })
                 .eq('id', profileId);
 
             if (error) throw error;
+
+            // Update local state to reflect sync
+            if (syncWaNumber) setWaNumber(syncWaNumber);
+
             toast({ title: 'Configurações salvas!' });
         } catch (error: any) {
             toast({
@@ -797,6 +845,7 @@ export default function AdminPanel() {
                         profileId={profileId || ''}
                         categories={categories}
                         editingGlass={editingGlass}
+                        waContacts={waContacts} // New prop
                         onSave={async (glassData) => {
                             setIsSubmitting(true);
                             try {
@@ -804,8 +853,13 @@ export default function AdminPanel() {
                                     const { error } = await supabase
                                         .from('glasses')
                                         .update({
-                                            ...glassData,
-                                            store_id: profileId,
+                                            name: glassData.name,
+                                            price: glassData.price || null,
+                                            category: glassData.category || null,
+                                            image_url: glassData.image_url,
+                                            buy_link: glassData.buy_link || null,
+                                            ar_config: glassData.ar_config,
+                                            whatsapp_contact_id: glassData.whatsapp_contact_id || null // Save Contact ID
                                         })
                                         .eq('id', editingGlass.id);
                                     if (error) throw error;
@@ -814,8 +868,15 @@ export default function AdminPanel() {
                                     const { error } = await supabase
                                         .from('glasses')
                                         .insert({
-                                            ...glassData,
                                             store_id: profileId,
+                                            name: glassData.name,
+                                            price: glassData.price || null,
+                                            category: glassData.category || null,
+                                            image_url: glassData.image_url,
+                                            buy_link: glassData.buy_link || null,
+                                            ar_config: glassData.ar_config,
+                                            is_custom: false,
+                                            whatsapp_contact_id: glassData.whatsapp_contact_id || null // Save Contact ID
                                         });
                                     if (error) throw error;
                                     toast({ title: 'Óculos adicionado!' });
@@ -846,6 +907,7 @@ export default function AdminPanel() {
                         onCategoriesChange={fetchCategories}
                     />
                 )}
+
 
                 {/* LIST VIEW */}
                 {viewMode === 'list' && (
@@ -1281,82 +1343,240 @@ export default function AdminPanel() {
                                 )}
 
                                 {configMenu === 'whatsapp' && (
-                                    <>
-                                        <div className="flex items-center gap-3 mb-6">
-                                            <button
-                                                onClick={() => setConfigMenu('main')}
-                                                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"
-                                            >
-                                                <ArrowLeft className="w-4 h-4 text-slate-600" />
-                                            </button>
-                                            <h2 className="text-xl font-bold text-slate-800">Gerar Link WhatsApp</h2>
+                                    <div className="min-h-[calc(100vh-200px)] flex flex-col items-center max-w-md mx-auto w-full">
+                                        <div className="w-full flex items-center justify-between mb-6">
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    onClick={() => setConfigMenu('main')}
+                                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"
+                                                >
+                                                    <ArrowLeft className="w-4 h-4 text-slate-600" />
+                                                </button>
+                                                <h2 className="text-xl font-bold text-slate-800">Canais de Atendimento</h2>
+                                            </div>
+                                            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                                                {waContacts.length} / {waSlots} Ativos
+                                            </span>
                                         </div>
 
-                                        <div className="space-y-6">
-                                            <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                                                <div className="flex items-center gap-2 mb-4">
-                                                    <Switch
-                                                        checked={waEnabled}
-                                                        onCheckedChange={(checked) => {
-                                                            setWaEnabled(checked);
-                                                            if (checked && !waMessage) {
-                                                                setWaMessage("Olá, tenho interesse nesse modelo:");
-                                                            }
-                                                        }}
-                                                    />
-                                                    <span className="text-sm font-bold text-slate-800">Ativar Link Automático</span>
+                                        <div className="w-full space-y-6">
+                                            {/* Ativação Geral */}
+                                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-slate-800">Integração WhatsApp</span>
+                                                    <span className="text-xs text-slate-500">Ativar botões "Consultar Preço"</span>
                                                 </div>
-
-                                                {waEnabled && (
-                                                    <div className="space-y-4">
-                                                        <div>
-                                                            <Label className="block text-xs font-bold text-green-800 mb-1">
-                                                                Número do WhatsApp (DDD + Número)
-                                                            </Label>
-                                                            <Input
-                                                                value={waNumber}
-                                                                onChange={(e) => setWaNumber(e.target.value)}
-                                                                placeholder="Ex: 5511999999999"
-                                                                className="border-green-200 focus:border-green-500"
-                                                            />
-                                                            <p className="text-[10px] text-green-600 mt-1">
-                                                                Apenas números. Ex: 5511999998888
-                                                            </p>
-                                                        </div>
-                                                        <div>
-                                                            <Label className="block text-xs font-bold text-green-800 mb-1">
-                                                                Mensagem Padrão
-                                                            </Label>
-                                                            <Input
-                                                                value={waMessage}
-                                                                onChange={(e) => setWaMessage(e.target.value)}
-                                                                placeholder="Ex: Olá, tenho interesse no modelo"
-                                                                className="border-green-200 focus:border-green-500"
-                                                            />
-                                                            <p className="text-[10px] text-green-600 mt-1">
-                                                                Dica: Use {'{ref}'} para inserir o nome do óculos automaticamente.
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                <Switch
+                                                    checked={waEnabled}
+                                                    onCheckedChange={(checked) => {
+                                                        setWaEnabled(checked);
+                                                        if (checked && !waMessage) {
+                                                            setWaMessage("Olá, tenho interesse nesse modelo:");
+                                                        }
+                                                    }}
+                                                />
                                             </div>
 
+                                            {waEnabled && (
+                                                <>
+                                                    {/* Configurações Globais */}
+                                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                                        <Label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                                                            Mensagem Padrão
+                                                        </Label>
+                                                        <Input
+                                                            value={waMessage}
+                                                            onChange={(e) => setWaMessage(e.target.value)}
+                                                            placeholder="Ex: Olá, tenho interesse no modelo"
+                                                            className="bg-white border-slate-200 focus:border-green-500 h-9 text-sm"
+                                                        />
+                                                    </div>
+
+                                                    {/* Lista de Contatos */}
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <h3 className="text-sm font-bold text-slate-800">Vendedores / Contatos</h3>
+                                                            {waContacts.length < waSlots && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    className="h-8 text-xs bg-green-600 hover:bg-green-700 gap-1"
+                                                                    onClick={() => {
+                                                                        setEditingContact({
+                                                                            id: '',
+                                                                            name: '',
+                                                                            number: '',
+                                                                            is_default: waContacts.length === 0
+                                                                        });
+                                                                        setIsEditingContact(true);
+                                                                    }}
+                                                                >
+                                                                    <Plus className="w-3 h-3" /> Adicionar
+                                                                </Button>
+                                                            )}
+                                                        </div>
+
+                                                        {waContacts.length === 0 ? (
+                                                            <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                                                                <p className="text-sm text-slate-500">Nenhum contato cadastrado.</p>
+                                                                <p className="text-xs text-slate-400 mt-1">Clique em "Adicionar" para começar.</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-2">
+                                                                {waContacts.map((contact) => (
+                                                                    <div
+                                                                        key={contact.id}
+                                                                        className={`p-3 rounded-lg border flex items-center justify-between group transition-all ${contact.is_default ? 'bg-green-50 border-green-200 ring-1 ring-green-100' : 'bg-white border-slate-100 hover:border-slate-300'}`}
+                                                                    >
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${contact.is_default ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                                                                                <MessageSquare className="w-4 h-4" />
+                                                                            </div>
+                                                                            <div>
+                                                                                <p className="text-sm font-bold text-slate-800 leading-tight">
+                                                                                    {contact.name || 'Sem nome'}
+                                                                                    {contact.is_default && <span className="ml-2 text-[10px] bg-green-200 text-green-800 px-1.5 py-0.5 rounded font-bold uppercase">Padrão</span>}
+                                                                                </p>
+                                                                                <p className="text-xs text-slate-500 font-mono">
+                                                                                    +{contact.number}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1">
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setEditingContact(contact);
+                                                                                    setIsEditingContact(true);
+                                                                                }}
+                                                                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition"
+                                                                            >
+                                                                                <Edit className="w-4 h-4" />
+                                                                            </button>
+                                                                            {!contact.is_default && (
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        const newContacts = waContacts.filter(c => c.id !== contact.id);
+                                                                                        setWaContacts(newContacts);
+                                                                                    }}
+                                                                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"
+                                                                                >
+                                                                                    <Trash2 className="w-4 h-4" />
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+
                                             <Button
-                                                className="w-full bg-green-600 hover:bg-green-700"
+                                                className="w-full bg-slate-900 hover:bg-slate-800 h-12 rounded-xl text-base font-semibold shadow-lg"
                                                 onClick={handleSaveConfig}
                                                 disabled={isSubmitting}
                                             >
                                                 {isSubmitting ? (
                                                     <>
-                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                                                         Salvando...
                                                     </>
                                                 ) : (
-                                                    'Salvar Configurações'
+                                                    'Salvar Alterações'
                                                 )}
                                             </Button>
                                         </div>
-                                    </>
+
+                                        {/* Contact Edit Dialog/Overlay */}
+                                        {isEditingContact && editingContact && (
+                                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+                                                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+                                                    <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                                        <h3 className="font-bold text-slate-800">
+                                                            {editingContact.id ? 'Editar Contato' : 'Novo Contato'}
+                                                        </h3>
+                                                        <button onClick={() => setIsEditingContact(false)} className="text-slate-400 hover:text-slate-600">
+                                                            <X className="w-5 h-5" />
+                                                        </button>
+                                                    </div>
+                                                    <div className="p-5 space-y-4">
+                                                        <div>
+                                                            <Label className="text-xs font-bold text-slate-500 uppercase mb-1">Nome do Vendedor / Setor</Label>
+                                                            <Input
+                                                                value={editingContact.name}
+                                                                onChange={(e) => setEditingContact({ ...editingContact, name: e.target.value })}
+                                                                placeholder="Ex: Vendas - Dani"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label className="text-xs font-bold text-slate-500 uppercase mb-1">WhatsApp</Label>
+                                                            <div className="flex gap-2">
+                                                                <div className="flex items-center justify-center bg-slate-100 border border-slate-200 rounded-md px-3 text-slate-500 font-medium select-none text-sm">
+                                                                    🇧🇷 +55
+                                                                </div>
+                                                                <Input
+                                                                    value={editingContact.number.replace(/^55/, '').replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3').replace(/^(\d{2})(\d{4})(\d{4}).*/, '($1) $2-$3').replace(/^(\d{2})(\d)/, '($1) $2')}
+                                                                    onChange={(e) => {
+                                                                        const raw = e.target.value.replace(/\D/g, '');
+                                                                        const cleaned = raw.slice(0, 11);
+                                                                        setEditingContact({ ...editingContact, number: `55${cleaned}` });
+                                                                    }}
+                                                                    placeholder="(11) 99999-9999"
+                                                                    maxLength={15}
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Hide option if it's the only/first contact */}
+                                                        {!(waContacts.length <= 1 && (editingContact.is_default || !editingContact.id)) && (
+                                                            <div className="flex items-center gap-2 pt-2">
+                                                                <Switch
+                                                                    checked={editingContact.is_default}
+                                                                    onCheckedChange={(checked) => {
+                                                                        setEditingContact({ ...editingContact, is_default: checked });
+                                                                    }}
+                                                                />
+                                                                <span className="text-sm text-slate-700 font-medium">Definir como Principal</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="p-4 bg-slate-50 flex gap-3">
+                                                        <Button variant="outline" className="flex-1" onClick={() => setIsEditingContact(false)}>Cancelar</Button>
+                                                        <Button
+                                                            className="flex-1 bg-green-600 hover:bg-green-700"
+                                                            disabled={!editingContact.name || editingContact.number.length < 12} // 55 + 10 digits min
+                                                            onClick={() => {
+                                                                let updatedList = [...waContacts];
+
+                                                                // Handle Default Logic
+                                                                if (editingContact.is_default) {
+                                                                    updatedList = updatedList.map(c => ({ ...c, is_default: false }));
+                                                                }
+
+                                                                if (editingContact.id) {
+                                                                    // Edit
+                                                                    updatedList = updatedList.map(c => c.id === editingContact.id ? editingContact : c);
+                                                                } else {
+                                                                    // Create
+                                                                    updatedList.push({ ...editingContact, id: crypto.randomUUID() });
+                                                                }
+
+                                                                // Ensure at least one default
+                                                                if (!updatedList.some(c => c.is_default) && updatedList.length > 0) {
+                                                                    updatedList[0].is_default = true;
+                                                                }
+
+                                                                setWaContacts(updatedList);
+                                                                setIsEditingContact(false);
+                                                            }}
+                                                        >
+                                                            Salvar
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
 
                                 {configMenu === 'categories' && (

@@ -36,6 +36,9 @@ export default function ARCamera({
   onSnapAnchors,
   onPushHistory,
 }: ARCameraProps) {
+  // DEBUG: Verificar preço e telefone para o botão de WhatsApp
+  // console.log('ARTryOnModal Debug:', { price: glass?.price, phone: storePhone });
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);

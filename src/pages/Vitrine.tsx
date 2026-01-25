@@ -13,6 +13,7 @@ interface Profile {
   id: string;
   store_name: string | null;
   store_logo_url: string | null;
+  store_logo_rect_url: string | null;
   banner_url: string | null;
   store_color: string | null;
   allow_camera: boolean | null;
@@ -247,7 +248,7 @@ export default function Vitrine() {
         glass={selectedGlass}
         isOpen={isTryOnOpen}
         onClose={handleCloseTryOn}
-        storePhone={profile.phone}
+        storePhone={(profile.wa_enabled && profile.wa_number) ? profile.wa_number : profile.phone}
       />
 
       {/* Category Filter Modal */}

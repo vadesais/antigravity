@@ -59,6 +59,7 @@ interface Profile {
   user_roles: { role: string }[];
   monthly_count?: number;
   glasses_count?: number;
+  whatsapp_slots?: number;
 }
 
 export default function MasterPanel() {
@@ -97,6 +98,7 @@ export default function MasterPanel() {
   const [allowModelCreation, setAllowModelCreation] = useState(false);
   const [dailyLimit, setDailyLimit] = useState(10);
   const [monthlyLimit, setMonthlyLimit] = useState(100);
+  const [whatsappSlots, setWhatsappSlots] = useState(1);
   const [stats, setStats] = useState({
     totalGenerations: 0,
     dailyCount: 0,
@@ -199,7 +201,9 @@ export default function MasterPanel() {
     setAllowVisagismo(false);
     setAllowModelCreation(false);
     setDailyLimit(10);
+    setDailyLimit(10);
     setMonthlyLimit(100);
+    setWhatsappSlots(1);
   };
 
   const handleProvadorToggle = (type: 'camera' | 'image') => {
@@ -235,6 +239,7 @@ export default function MasterPanel() {
             allow_visagismo: allowVisagismo,
             allow_model_creation: allowModelCreation,
             plan: storePlan,
+            whatsapp_slots: whatsappSlots,
           })
           .eq('id', editingId);
 
@@ -304,7 +309,9 @@ export default function MasterPanel() {
     setAllowVisagismo(profile.allow_visagismo ?? false);
     // allow_ai removed
     setAllowModelCreation(profile.allow_model_creation ?? false);
+    setAllowModelCreation(profile.allow_model_creation ?? false);
     setStorePlan(profile.plan || '1_month');
+    setWhatsappSlots(profile.whatsapp_slots || 1);
 
     // Fetch limits
     try {
@@ -754,6 +761,25 @@ export default function MasterPanel() {
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 mt-2">
+                  <div>
+                    <Label className="block text-xs font-semibold text-slate-500 mb-1">
+                      Limite de WhatsApps
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={whatsappSlots}
+                      onChange={(e) => setWhatsappSlots(parseInt(e.target.value) || 1)}
+                      className="bg-white dark:bg-white text-slate-900 border-slate-300 focus:border-indigo-500"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Quantos números a loja pode cadastrar.
+                    </p>
                   </div>
                 </div>
 

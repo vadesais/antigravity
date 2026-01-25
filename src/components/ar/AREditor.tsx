@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Tag, Save, Loader2, Image as ImageIcon, Upload, X, Plus } from 'lucide-react';
+import { Tag, Save, Loader2, Image as ImageIcon, Upload, X, Plus, Sparkles } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -26,6 +26,7 @@ interface EditingGlass {
   image_url: string;
   buy_link: string | null;
   ar_config: any;
+  whatsapp_contact_id?: string | null;
 }
 
 interface AREditorProps {
@@ -39,6 +40,7 @@ interface AREditorProps {
     buy_link: string;
     ar_config: any;
     cover_image_url: string | null;
+    whatsapp_contact_id?: string | null;
   }) => Promise<void>;
   editingGlass?: EditingGlass | null;
   onCancel?: () => void;
@@ -48,6 +50,7 @@ interface AREditorProps {
     number: string;
     message: string;
   };
+  waContacts?: { id: string; name: string; number: string; is_default: boolean }[]; // New prop
   onCategoriesChange?: () => Promise<void>;
 }
 
@@ -59,6 +62,7 @@ export default function AREditor({
   onCancel,
   isSubmitting = false,
   waConfig,
+  waContacts = [], // Default empty
   onCategoriesChange
 }: AREditorProps) {
   const { toast } = useToast();
@@ -90,15 +94,28 @@ export default function AREditor({
   const [customCoverImage, setCustomCoverImage] = useState<string | null>(null);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [linkType, setLinkType] = useState<'whatsapp' | 'website'>('whatsapp');
+  const [selectedContactId, setSelectedContactId] = useState<string>('default'); // Multi-WA State
 
-  // Auto-generate WhatsApp link
+  // Auto-generate WhatsApp link based on selected contact
   useEffect(() => {
-    if (linkType === 'whatsapp' && waConfig?.enabled && waConfig?.number) {
-      const encodedMessage = encodeURIComponent(`${waConfig.message} ${name || ''}`.trim());
-      const link = `http://api.whatsapp.com/send/?phone=${waConfig.number}&text=${encodedMessage}`;
-      setBuyLink(link);
+    if (linkType === 'whatsapp' && waConfig?.enabled) {
+      let activeNumber = waConfig.number;
+
+      // If a specific contact is selected, use their number
+      if (selectedContactId && selectedContactId !== 'default' && waContacts.length > 0) {
+        const contact = waContacts.find(c => c.id === selectedContactId);
+        if (contact) {
+          activeNumber = contact.number;
+        }
+      }
+
+      if (activeNumber) {
+        const encodedMessage = encodeURIComponent(`${waConfig.message} ${name || ''}`.trim());
+        const link = `http://api.whatsapp.com/send/?phone=${activeNumber}&text=${encodedMessage}`;
+        setBuyLink(link);
+      }
     }
-  }, [name, waConfig, linkType]);
+  }, [name, waConfig, linkType, selectedContactId, waContacts]);
 
   // Apply initial AR config and load front image on mount/change
   useEffect(() => {
@@ -116,6 +133,13 @@ export default function AREditor({
         }
       }
 
+      // Load selected contact
+      if (editingGlass.whatsapp_contact_id) {
+        setSelectedContactId(editingGlass.whatsapp_contact_id);
+      } else {
+        setSelectedContactId('default');
+      }
+
 
       // Load front image from existing glass
       if (editingGlass.image_url) {
@@ -131,7 +155,9 @@ export default function AREditor({
       setName('');
       setPrice('');
       setCategory('');
+      setCategory('');
       setBuyLink('');
+      setSelectedContactId('default');
       clearAll();
 
       // Load default template AFTER clearing (so it overrides defaults)
@@ -314,6 +340,7 @@ export default function AREditor({
       buy_link: buyLink,
       ar_config: arConfig,
       cover_image_url: coverImageUrl,
+      whatsapp_contact_id: selectedContactId !== 'default' ? selectedContactId : null,
     });
   };
 
@@ -387,6 +414,7 @@ export default function AREditor({
         buy_link: buyLink,
         ar_config: finalConfig,
         cover_image_url: frontUrl, // Use front image as cover by default for 3D models
+        whatsapp_contact_id: selectedContactId !== 'default' ? selectedContactId : null,
       });
 
       setIsPublishModalOpen(false);
@@ -419,108 +447,138 @@ export default function AREditor({
         {/* Metadata Modal for 3D Publish */}
         {isPublishModalOpen && (
           <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-[#1e1e1e] border dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in duration-300">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Preencha os detalhes</h2>
+            <div className="bg-white dark:bg-[#1e1e1e] border dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-300">
+
+              <div className="px-5 py-4 border-b dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-500" />
+                  Publicar Óculos 3D
+                </h2>
                 <button onClick={() => setIsPublishModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {/* Image Preview */}
-                <div className="flex justify-center mb-4">
+              <div className="p-5 space-y-4">
+                <div className="flex gap-5">
+                  {/* Left: Image Preview (Compact) */}
                   {pending3DData?.frontImage && (
-                    <div className="w-32 h-32 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-2 relative">
+                    <div className="w-24 h-24 shrink-0 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-2 relative self-start">
                       <img src={pending3DData.frontImage} className="w-full h-full object-contain" />
-                      <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">3D</div>
                     </div>
                   )}
-                </div>
 
-                <div>
-                  <Label className="dark:text-slate-200">Nome do Óculos *</Label>
-                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Ray-Ban Aviator" className="mt-1 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="dark:text-slate-200">Preço (R$)</Label>
-                    <Input value={price} onChange={e => setPrice(formatPrice(e.target.value))} placeholder="0,00" className="mt-1 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200" />
-                  </div>
-                  <div>
-                    <Label className="dark:text-slate-200">Categoria</Label>
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger className="mt-1 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-[#1e1e1e] dark:border-slate-700 z-[100]">
-                        {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat} className="dark:text-slate-200 dark:focus:bg-slate-800">{cat}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">Tipo de Link</Label>
-                  <div className="flex gap-4 mb-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800/50">
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${linkType === 'whatsapp' ? 'border-green-600 bg-green-600' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 group-hover:border-green-400'}`}>
-                        {linkType === 'whatsapp' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                      </div>
-                      <input
-                        type="radio"
-                        name="linkTypeModal"
-                        value="whatsapp"
-                        checked={linkType === 'whatsapp'}
-                        onChange={() => setLinkType('whatsapp')}
-                        className="sr-only"
+                  {/* Right: Form Fields */}
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <Label className="text-xs font-bold text-slate-500 uppercase mb-1">Nome do Modelo</Label>
+                      <Input
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="Ex: Ray-Ban Aviator"
+                        className="h-9 dark:bg-slate-800 dark:border-slate-700"
                       />
-                      <span className={`text-sm transition-colors ${linkType === 'whatsapp' ? 'text-green-700 dark:text-green-400 font-medium' : 'text-slate-600 dark:text-slate-400'}`}>WhatsApp</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${linkType === 'website' ? 'border-blue-600 bg-blue-600' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 group-hover:border-blue-400'}`}>
-                        {linkType === 'website' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs font-bold text-slate-500 uppercase mb-1">Preço (R$)</Label>
+                        <Input
+                          value={price}
+                          onChange={e => setPrice(formatPrice(e.target.value))}
+                          placeholder="0,00"
+                          className="h-9 dark:bg-slate-800 dark:border-slate-700"
+                        />
                       </div>
-                      <input
-                        type="radio"
-                        name="linkTypeModal"
-                        value="website"
-                        checked={linkType === 'website'}
-                        onChange={() => {
+                      <div>
+                        <Label className="text-xs font-bold text-slate-500 uppercase mb-1">Categoria</Label>
+                        <Select value={category} onValueChange={setCategory}>
+                          <SelectTrigger className="h-9 dark:bg-slate-800 dark:border-slate-700">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent className="z-[100]">
+                            {categories.map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="text-xs font-bold text-slate-500 uppercase">Botão Comprar</Label>
+
+                    <div className="flex bg-white dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
+                      <button
+                        onClick={() => setLinkType('whatsapp')}
+                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${linkType === 'whatsapp' ? 'bg-green-100 text-green-700' : 'text-slate-500 hover:text-slate-700'}`}
+                      >
+                        WhatsApp
+                      </button>
+                      <button
+                        onClick={() => {
                           setLinkType('website');
                           setBuyLink('');
                         }}
-                        className="sr-only"
-                      />
-                      <span className={`text-sm transition-colors ${linkType === 'website' ? 'text-blue-700 dark:text-blue-400 font-medium' : 'text-slate-600 dark:text-slate-400'}`}>Site / Loja</span>
-                    </label>
+                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${linkType === 'website' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:text-slate-700'}`}
+                      >
+                        Site
+                      </button>
+                    </div>
                   </div>
 
-                  <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 block">Link de Compra</Label>
-                  <Input
-                    value={buyLink}
-                    onChange={e => setBuyLink(e.target.value)}
-                    placeholder="https://..."
-                    readOnly={linkType === 'whatsapp' && waConfig?.enabled}
-                    className={`h-10 border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-white ${linkType === 'whatsapp' && waConfig?.enabled ? 'bg-slate-50 dark:bg-slate-800 text-slate-500' : ''}`}
-                  />
-                  {linkType === 'whatsapp' && waConfig?.enabled && (
-                    <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                      <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full"></span> Gerado automaticamente com base no número configurado.
-                    </p>
+                  {/* WA Contact Selector */}
+                  {linkType === 'whatsapp' && waContacts.length > 0 && (
+                    <div className="mb-3">
+                      <Label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Atendente / Vendedor</Label>
+                      <Select value={selectedContactId} onValueChange={setSelectedContactId}>
+                        <SelectTrigger className="h-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="z-[100]">
+                          <SelectItem value="default" className="font-medium">
+                            {waContacts.find(c => c.is_default)?.name || 'Padrão da Loja'} (Padrão)
+                          </SelectItem>
+                          {waContacts.map((contact) => (
+                            <SelectItem key={contact.id} value={contact.id}>
+                              {contact.name} <span className="text-slate-400 ml-1">({contact.number})</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Link Input (Hidden if WA, Visible if Site) */}
+                  <div className={linkType === 'whatsapp' ? 'hidden' : 'block'}>
+                    <Label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">URL de Destino</Label>
+                    <Input
+                      value={buyLink}
+                      onChange={e => setBuyLink(e.target.value)}
+                      placeholder="https://..."
+                      className="h-9 bg-white dark:bg-slate-900"
+                    />
+                  </div>
+
+                  {/* Info text for WA */}
+                  {linkType === 'whatsapp' && (
+                    <div className="text-xs text-slate-500 flex items-center gap-2 bg-green-50/50 dark:bg-green-900/10 p-2 rounded border border-green-100 dark:border-green-900/20">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                      Link do WhatsApp será gerado automaticamente.
+                    </div>
                   )}
                 </div>
 
                 <Button
                   onClick={handleConfirmPublish}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 mt-4"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-11 rounded-xl shadow-lg shadow-green-200/50 dark:shadow-none"
                   disabled={isPublishing}
                 >
                   {isPublishing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                  Confirmar e Publicar
+                  Publicar Agora
                 </Button>
 
               </div>
@@ -776,123 +834,148 @@ export default function AREditor({
                 </label>
               </div>
 
-              <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 block">Link de Compra</Label>
-              <Input
-                placeholder="https://..."
-                value={buyLink}
-                onChange={(e) => setBuyLink(e.target.value)}
-                readOnly={linkType === 'whatsapp' && waConfig?.enabled} // Read-only if auto-generated
-                className={`h-10 border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-white ${linkType === 'whatsapp' && waConfig?.enabled ? 'bg-slate-50 dark:bg-slate-800 text-slate-500' : ''}`}
-              />
-              {linkType === 'whatsapp' && waConfig?.enabled && (
-                <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                  <span className="inline-block w-1.5 h-1.5 bg-indigo-500 rounded-full"></span> Gerado automaticamente com base no número configurado.
-                </p>
-              )}
             </div>
 
-            {/* Cover Image Section */}
-            <div className="border-t border-slate-200 dark:border-slate-800 pt-5 mt-2">
-              <Label className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-4">
-                <ImageIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-500" />
-                Imagem de Capa (Vitrine)
-              </Label>
+            {linkType === 'whatsapp' && waContacts.length > 0 && (
+              <div className="mb-4">
+                <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 block">Atendente Responsável</Label>
+                <Select value={selectedContactId} onValueChange={setSelectedContactId}>
+                  <SelectTrigger className="h-10 border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-white">
+                    <SelectValue placeholder="Padrão da Loja" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-[#1e1e1e]">
+                    <SelectItem value="default" className="font-semibold text-slate-500">
+                      Padrão da Loja
+                    </SelectItem>
+                    {waContacts.map(contact => (
+                      <SelectItem key={contact.id} value={contact.id}>
+                        {contact.name} ({contact.number.slice(-4)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Quem receberá as mensagens deste produto.
+                </p>
+              </div>
+            )}
 
-              <div className="space-y-4">
-                {/* Radio Options */}
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <input
-                      type="radio"
-                      name="coverImage"
-                      value="glasses"
-                      checked={coverImageMode === 'glasses'}
-                      onChange={() => setCoverImageMode('glasses')}
-                      className="w-4 h-4 text-indigo-600 accent-indigo-600 cursor-pointer"
-                    />
-                    <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors">Usar frente do óculos</span>
-                  </label>
+            <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 block">Link de Compra</Label>
+            <Input
+              placeholder="https://..."
+              value={buyLink}
+              onChange={(e) => setBuyLink(e.target.value)}
+              readOnly={linkType === 'whatsapp' && waConfig?.enabled} // Read-only if auto-generated
+              className={`h-10 border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-white ${linkType === 'whatsapp' && waConfig?.enabled ? 'bg-slate-50 dark:bg-slate-800 text-slate-500' : ''}`}
+            />
+            {linkType === 'whatsapp' && waConfig?.enabled && (
+              <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 bg-indigo-500 rounded-full"></span> Gerado automaticamente com base no número configurado.
+              </p>
+            )}
+          </div>
 
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <input
-                      type="radio"
-                      name="coverImage"
-                      value="custom"
-                      checked={coverImageMode === 'custom'}
-                      onChange={() => setCoverImageMode('custom')}
-                      className="w-4 h-4 text-indigo-600 accent-indigo-600 cursor-pointer"
-                    />
-                    <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors">Usar outra imagem</span>
+          {/* Cover Image Section */}
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-5 mt-2">
+            <Label className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-4">
+              <ImageIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-500" />
+              Imagem de Capa (Vitrine)
+            </Label>
+
+            <div className="space-y-4">
+              {/* Radio Options */}
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="coverImage"
+                    value="glasses"
+                    checked={coverImageMode === 'glasses'}
+                    onChange={() => setCoverImageMode('glasses')}
+                    className="w-4 h-4 text-indigo-600 accent-indigo-600 cursor-pointer"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors">Usar frente do óculos</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="coverImage"
+                    value="custom"
+                    checked={coverImageMode === 'custom'}
+                    onChange={() => setCoverImageMode('custom')}
+                    className="w-4 h-4 text-indigo-600 accent-indigo-600 cursor-pointer"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors">Usar outra imagem</span>
+                </label>
+              </div>
+
+              {/* File Upload (shown when custom is selected) */}
+              {coverImageMode === 'custom' && (
+                <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 text-center hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/30 transition-all cursor-pointer group">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          setCustomCoverImage(event.target?.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                    id="cover-image-upload"
+                  />
+                  <label htmlFor="cover-image-upload" className="cursor-pointer">
+                    {customCoverImage ? (
+                      <div className="space-y-2">
+                        <img src={customCoverImage} alt="Cover preview" className="max-h-32 mx-auto rounded" />
+                        <p className="text-xs text-slate-500">Clique para alterar</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Upload className="w-8 h-8 text-slate-400 mx-auto" />
+                        <p className="text-sm text-slate-600 font-medium">Clique para enviar imagem</p>
+                        <p className="text-xs text-slate-400">PNG, JPG até 5MB</p>
+                      </div>
+                    )}
                   </label>
                 </div>
-
-                {/* File Upload (shown when custom is selected) */}
-                {coverImageMode === 'custom' && (
-                  <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 text-center hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50/30 transition-all cursor-pointer group">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            setCustomCoverImage(event.target?.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="hidden"
-                      id="cover-image-upload"
-                    />
-                    <label htmlFor="cover-image-upload" className="cursor-pointer">
-                      {customCoverImage ? (
-                        <div className="space-y-2">
-                          <img src={customCoverImage} alt="Cover preview" className="max-h-32 mx-auto rounded" />
-                          <p className="text-xs text-slate-500">Clique para alterar</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <Upload className="w-8 h-8 text-slate-400 mx-auto" />
-                          <p className="text-sm text-slate-600 font-medium">Clique para enviar imagem</p>
-                          <p className="text-xs text-slate-400">PNG, JPG até 5MB</p>
-                        </div>
-                      )}
-                    </label>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-2">
-              {onCancel && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCancel}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
               )}
-              <Button
-                onClick={handleSubmit}
-                disabled={isSubmitting || !model.parts.front.img}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    {editingGlass ? 'Atualizar' : 'Publicar'}
-                  </>
-                )}
-              </Button>
             </div>
+          </div>
+
+          <div className="flex gap-3 mt-2">
+            {onCancel && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+            )}
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting || !model.parts.front.img}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  {editingGlass ? 'Atualizar' : 'Publicar'}
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </div>
