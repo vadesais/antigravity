@@ -800,9 +800,9 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
 
                 // AJUSTE MANUAL DE INCLINAÇÃO (Fechando as hastes para dentro)
                 // Ajustar Hastes Esquerda
-                const baseRotLeft = (Math.PI / 2) - angleRad + 0.1;
+                const baseRotLeft = (Math.PI / 2) - angleRad + 0.05;
                 // Ajustar Hastes Direita
-                const baseRotRight = -(Math.PI / 2) + angleRad - 0.1;
+                const baseRotRight = -(Math.PI / 2) + angleRad - 0.05;
 
                 leftT.rotation.y = baseRotLeft;
                 rightT.rotation.y = baseRotRight;
