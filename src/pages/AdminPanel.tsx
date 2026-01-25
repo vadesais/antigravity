@@ -359,13 +359,22 @@ export default function AdminPanel() {
 
         setUploadingImage(true);
         try {
-            const fileExt = file.name.split('.').pop();
+            // OPTIMIZE IMAGE: Max width 1920px, 80% quality
+            const { optimizeImage } = await import('@/utils/imageOptimizer');
+            const optimizedBlob = await optimizeImage(file, 1920, 0.8);
+
+            // Convert Blob back to File (needed for some upload interfaces, though Supabase accepts BodyInit)
+            // We use the original name but force .jpg extension as optimization converts to JPEG
+            const fileExt = 'jpg';
             const fileName = `banner-${Date.now()}.${fileExt}`;
             const filePath = `${profileId}/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('glasses-images')
-                .upload(filePath, file);
+                .upload(filePath, optimizedBlob, {
+                    contentType: 'image/jpeg',
+                    upsert: true
+                });
 
             if (uploadError) throw uploadError;
 
@@ -374,8 +383,9 @@ export default function AdminPanel() {
                 .getPublicUrl(filePath);
 
             setBannerUrl(publicUrl);
-            toast({ title: 'Banner enviado!' });
+            toast({ title: 'Banner otimizado e enviado!' });
         } catch (error: any) {
+            console.error(error);
             toast({
                 title: 'Erro no upload do banner',
                 description: error.message,
