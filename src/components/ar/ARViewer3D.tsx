@@ -431,9 +431,9 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
 
                 // AJUSTE MANUAL DE INCLINAÇÃO (Fechando as hastes para dentro)
                 // Ajustar Hastes Esquerda
-                const baseRotLeft = (Math.PI / 2) - angleRad - 0.0;
+                const baseRotLeft = (Math.PI / 2) - angleRad + 0.1;
                 // Ajustar Hastes Direita
-                const baseRotRight = -(Math.PI / 2) + angleRad + 0.0;
+                const baseRotRight = -(Math.PI / 2) + angleRad - 0.1;
 
                 leftT.rotation.y = baseRotLeft;
                 rightT.rotation.y = baseRotRight;
@@ -571,6 +571,7 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             <video
                 ref={videoRef}
                 className="absolute inset-0 w-full h-full object-cover"
+                style={{ objectPosition: 'center' }}
                 playsInline
                 autoPlay
                 muted
