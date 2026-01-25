@@ -35,6 +35,11 @@ export default function DirectTryOn() {
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
+        // Smart Preload: Start loading FaceMesh immediately
+        import('@/services/faceMeshService').then(({ faceMeshService }) => {
+            faceMeshService.preload();
+        });
+
         async function fetchData() {
             if (!glassId) {
                 setError('Link inválido');

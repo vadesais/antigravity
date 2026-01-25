@@ -530,41 +530,36 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
 
     }, [glass]);
 
-    const [showLongLoadingMessage, setShowLongLoadingMessage] = React.useState(false);
-    const [typedText, setTypedText] = React.useState('');
-    const fullLongMessage = "Sua primeira vez usando esse provador, por isso está demorando um pouco para carregar, aguarde só mais alguns segundos ...";
+    // === LOADING STATE & ANIMATION ===
+    const [progress, setProgress] = React.useState(0);
 
-    // Timer for Long Loading Message
+    // Smart Progress Simulation
     useEffect(() => {
         if (!isLoading) {
-            setShowLongLoadingMessage(false);
-            setTypedText('');
+            setProgress(100);
             return;
         }
 
-        const timer = setTimeout(() => {
-            setShowLongLoadingMessage(true);
-        }, 3500); // 3.5s delay before showing the "First Time" message
+        let currentProgress = 0;
+        const interval = setInterval(() => {
+            // Fast start, slow end curve
+            if (currentProgress < 30) {
+                currentProgress += Math.random() * 3 + 1; // Very fast
+            } else if (currentProgress < 70) {
+                currentProgress += Math.random() * 1 + 0.5; // Medium
+            } else if (currentProgress < 95) {
+                currentProgress += Math.random() * 0.2; // Slow crawl at end
+            }
 
-        return () => clearTimeout(timer);
+            // Clamp to 99% while still loading
+            if (currentProgress > 99) currentProgress = 99;
+
+            setProgress(Math.round(currentProgress));
+        }, 100);
+
+        return () => clearInterval(interval);
     }, [isLoading]);
 
-    // Typewriter Effect
-    useEffect(() => {
-        if (!showLongLoadingMessage) return;
-
-        let currentIndex = 0;
-        const typingInterval = setInterval(() => {
-            if (currentIndex <= fullLongMessage.length) {
-                setTypedText(fullLongMessage.slice(0, currentIndex));
-                currentIndex++;
-            } else {
-                clearInterval(typingInterval);
-            }
-        }, 50); // Speed of typing
-
-        return () => clearInterval(typingInterval);
-    }, [showLongLoadingMessage]);
 
     return (
         <div ref={containerRef} className="relative w-full h-full overflow-hidden bg-black rounded-2xl" style={{ transform: 'scaleX(-1)' }}>
@@ -581,25 +576,30 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                 className="absolute inset-0 w-full h-full"
             />
 
-            {isLoading && (
-                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md px-8 text-center" style={{ transform: 'scaleX(-1)' }}>
-                    <div className="relative mb-6">
-                        <div className="absolute inset-0 bg-blue-500 blur-xl opacity-20 rounded-full animate-pulse"></div>
-                        <Glasses className="relative w-16 h-16 text-white animate-bounce" />
+            {/* NEW PREMIUM LOADING OVERLAY */}
+            {(isLoading || progress < 100) && (
+                <div
+                    className={`absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md px-8 text-center transition-opacity duration-500 ${!isLoading && progress === 100 ? 'opacity-0' : 'opacity-100'}`}
+                    style={{ transform: 'scaleX(-1)' }}
+                >
+                    <div className="relative mb-8 flex items-center justify-center pt-4">
+                        {/* Wrapper for perfect centering */}
+                        <div className="relative w-20 h-20 flex items-center justify-center">
+                            {/* Rotating Spinner Ring - Background */}
+                            <div className="absolute inset-0 border-2 border-white/10 rounded-full"></div>
+
+                            {/* Rotating Spinner Ring - Active Segment */}
+                            {/* border-t-white creates the spinning segment, transparent elsewhere */}
+                            <div className="absolute inset-0 border-2 border-transparent border-t-white rounded-full animate-spin duration-1000"></div>
+
+                            {/* Static Icon - Perfectly Centered & Proportional */}
+                            <Glasses className="w-9 h-9 text-white/90 relative z-10" strokeWidth={1.5} />
+                        </div>
                     </div>
 
-                    {!showLongLoadingMessage ? (
-                        <p className="text-white text-lg font-medium animate-pulse">Carregando provador virtual</p>
-                    ) : (
-                        <div className="max-w-xs">
-                            <p className="text-white text-base font-medium leading-relaxed min-h-[60px]">
-                                {typedText}
-                                <span className="animate-pulse">|</span>
-                            </p>
-                        </div>
-                    )}
-
-                    <Loader2 className="w-6 h-6 text-white/50 animate-spin mt-6" />
+                    <p className="text-white/90 text-sm font-medium tracking-wide font-['Inter'] animate-pulse">
+                        Carregando provador — <span className="tabular-nums font-bold">{progress}%</span>
+                    </p>
                 </div>
             )}
         </div>

@@ -93,8 +93,11 @@ export default function ARTryOnModal({ glass, isOpen, onClose, storePhone }: ART
       </div>
 
       {/* 3D AR Viewer */}
-      <div className="flex-1 relative flex items-center justify-center bg-black">
-        <ARViewer3D glass={glass} />
+      <div className="flex-1 relative flex items-center justify-center bg-black w-full h-full overflow-hidden">
+        {/* Desktop Wrapper: Restricts aspect ratio to match Editor (4:3 aprox) */}
+        <div className="relative w-full h-full md:w-auto md:aspect-[4/3] md:max-h-[85vh] md:rounded-2xl md:overflow-hidden md:border md:border-white/10 md:shadow-2xl">
+          <ARViewer3D glass={glass} />
+        </div>
       </div>
 
       {/* Footer */}
