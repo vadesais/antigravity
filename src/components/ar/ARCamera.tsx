@@ -76,19 +76,68 @@ export default function ARCamera({
   // Start video stream
   const startVideo = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: 640, height: 480 },
-      });
+      // iOS Safari é mais restritivo com constraints
+      // Tentar primeiro com constraints ideais
+      let stream: MediaStream | null = null;
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+        });
+      } catch (firstError) {
+        console.warn('Primeira tentativa falhou, tentando constraints simplificadas:', firstError);
+
+        // Fallback para iOS: constraints mínimas
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' },
+          });
+        } catch (secondError) {
+          console.warn('Segunda tentativa falhou, tentando sem facingMode:', secondError);
+
+          // Último fallback: apenas vídeo sem constraints
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+        }
+      }
+
+      if (!stream) {
+        throw new Error('Não foi possível acessar a câmera');
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await new Promise<void>((resolve) => {
+
+        // iOS precisa de playsinline e autoplay
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('autoplay', 'true');
+        videoRef.current.muted = true;
+
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Timeout ao carregar vídeo'));
+          }, 10000); // 10 segundos timeout
+
           if (videoRef.current!.readyState >= 2) {
+            clearTimeout(timeout);
             resolve();
           } else {
-            videoRef.current!.onloadeddata = () => resolve();
+            videoRef.current!.onloadeddata = () => {
+              clearTimeout(timeout);
+              resolve();
+            };
+            videoRef.current!.onerror = () => {
+              clearTimeout(timeout);
+              reject(new Error('Erro ao carregar stream de vídeo'));
+            };
           }
         });
+
         await videoRef.current.play();
 
         if (canvasRef.current && videoRef.current) {
@@ -100,8 +149,20 @@ export default function ARCamera({
         onVideoStarted();
         loop();
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Camera access error:', e);
+
+      // Mensagem de erro mais específica para o usuário
+      let errorMessage = 'Erro ao acessar câmera';
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        errorMessage = 'Permissão de câmera negada. Por favor, permita o acesso à câmera nas configurações do navegador.';
+      } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+        errorMessage = 'Nenhuma câmera encontrada no dispositivo.';
+      } else if (e.name === 'NotReadableError' || e.name === 'TrackStartError') {
+        errorMessage = 'Câmera está sendo usada por outro aplicativo.';
+      }
+
+      alert(errorMessage);
       onLoadingChange(false);
     }
   };

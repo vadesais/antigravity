@@ -64,13 +64,29 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
 
                 const texturesPromise = loadTextures();
 
-                const cameraPromise = navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'user',
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
+                // iOS Safari é mais restritivo com constraints
+                let cameraPromise;
+                try {
+                    cameraPromise = navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'user',
+                            width: { ideal: 640 },
+                            height: { ideal: 480 }
+                        }
+                    });
+                } catch (firstError) {
+                    console.warn('Primeira tentativa de câmera falhou, tentando fallback:', firstError);
+                    try {
+                        cameraPromise = navigator.mediaDevices.getUserMedia({
+                            video: { facingMode: 'user' }
+                        });
+                    } catch (secondError) {
+                        console.warn('Segunda tentativa falhou, tentando sem facingMode:', secondError);
+                        cameraPromise = navigator.mediaDevices.getUserMedia({
+                            video: true
+                        });
                     }
-                });
+                }
 
                 // Wait for all critical resources
                 const [fmInstance, _, camStream] = await Promise.all([
@@ -90,6 +106,12 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                 // Start Video & Loop
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
+
+                    // iOS precisa de playsinline e autoplay
+                    videoRef.current.setAttribute('playsinline', 'true');
+                    videoRef.current.setAttribute('autoplay', 'true');
+                    videoRef.current.muted = true;
+
                     await new Promise(resolve => {
                         if (videoRef.current!.readyState >= 2) {
                             resolve(true);
