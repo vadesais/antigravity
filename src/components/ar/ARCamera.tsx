@@ -52,6 +52,7 @@ export default function ARCamera({
   const [hoverTarget, setHoverTarget] = useState<string | null>(null);
   const [cameraZoom, setCameraZoom] = useState(1.0); // 1.0 = 100% (original size)
   const [isRightClickDrag, setIsRightClickDrag] = useState(false); // Right-click temple drag mode
+  const [debugError, setDebugError] = useState<string | null>(null); // DEBUG para iOS
   const lastPosRef = useRef({ x: 0, y: 0 });
 
   // Lerp function for smooth interpolation
@@ -60,15 +61,21 @@ export default function ARCamera({
   // Initialize MediaPipe FaceMesh using Singleton Service
   const initFaceMesh = useCallback(async () => {
     try {
+      setDebugError('Carregando MediaPipe...');
       const { faceMeshService } = await import('@/services/faceMeshService');
+
+      setDebugError('Inicializando FaceMesh...');
       const faceMesh = await faceMeshService.getFaceMesh();
 
       faceMesh.onResults(onResults);
       faceMeshRef.current = faceMesh;
 
+      setDebugError('Iniciando câmera...');
       await startVideo();
-    } catch (error) {
+      setDebugError(null); // Sucesso!
+    } catch (error: any) {
       console.error('Failed to init FaceMesh:', error);
+      setDebugError(`Erro: ${error.message || 'Falha ao inicializar'}`);
       onLoadingChange(false);
     }
   }, []);
@@ -610,10 +617,27 @@ export default function ARCamera({
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-30">
             <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
             <p className="text-base font-semibold text-slate-600 animate-pulse">
-              Inicializando MediaPipe...
+              {debugError || 'Inicializando MediaPipe...'}
             </p>
           </div>
         )}
+
+        {/* Debug Error Overlay - Sempre visível se houver erro */}
+        {debugError && !isLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-50 z-30 p-4">
+            <div className="bg-white rounded-lg p-6 shadow-xl max-w-md">
+              <h3 className="text-lg font-bold text-red-600 mb-2">Erro de Inicialização</h3>
+              <p className="text-sm text-slate-700 mb-4">{debugError}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700"
+              >
+                Recarregar Página
+              </button>
+            </div>
+          </div>
+        )}
+
 
         {/* Video (hidden, used as source) */}
         <video
