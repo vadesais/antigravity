@@ -45,9 +45,29 @@ const ORIGINAL_HTML_CONTENT = `
 
             <!-- CABEÇALHO DO PAINEL -->
             <div class="flex items-center justify-between shrink-0">
-                <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                    <i data-lucide="settings-2" class="w-5 h-5 text-indigo-600"></i> Personalização
-                </h2>
+                <div class="flex items-center gap-3">
+                    <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">
+                        Editor 3D
+                    </h2>
+                    <a 
+                        href="https://www.remove.bg/pt-br" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        class="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors flex items-center gap-1"
+                    >
+                        <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
+                        Remover fundo
+                    </a>
+                    <a 
+                        href="https://wipix.app.br/editor/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        class="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors flex items-center gap-1"
+                    >
+                        <i data-lucide="glasses" class="w-3.5 h-3.5"></i>
+                        Editar lentes
+                    </a>
+                </div>
                 <div class="flex items-center gap-2">
                     <!-- Novo Botão Salvar (Topo) - OCULTO -->
                     <button onclick="window.saveTestConfig()" class="hidden text-xs font-medium text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 px-2 py-1 rounded border border-slate-900 dark:border-slate-600 transition-colors">
@@ -79,7 +99,7 @@ const ORIGINAL_HTML_CONTENT = `
                     
                     <!-- Middle: Text -->
                     <div class="flex-1 min-w-0">
-                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">Imagem Frontal</span>
+                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">Frente do óculos</span>
                         <span class="text-xs text-slate-400 block">Clique no ícone para alterar</span>
                     </div>
 
@@ -96,7 +116,7 @@ const ORIGINAL_HTML_CONTENT = `
                     <!-- Escala Geral -->
                     <div>
                         <div class="flex justify-between text-sm font-bold text-slate-500 mb-1">
-                            <span>Tamanho (Escala)</span>
+                            <span>Tamanho</span>
                             <span id="val-scale" class="bg-slate-100 px-1.5 rounded text-slate-700 font-mono">1.95</span>
                         </div>
                         <input type="range" min="1.0" max="4.9" step="0.01" value="1.95" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('scale', this.value)">
@@ -132,7 +152,7 @@ const ORIGINAL_HTML_CONTENT = `
 
                     <!-- Middle: Text -->
                     <div class="flex-1 min-w-0">
-                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">Imagem das Hastes</span>
+                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">Hastes do óculos</span>
                         <span class="text-xs text-slate-400 block">Clique no ícone para alterar</span>
                     </div>
 
@@ -152,7 +172,7 @@ const ORIGINAL_HTML_CONTENT = `
                         <!-- 1. Tamanho da hastes (Scale) -->
                         <div>
                             <div class="flex justify-between text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                <span>Tamanho das hastes</span>
+                                <span>Tamanho</span>
                                 <span id="val-templeScale" class="bg-white dark:bg-slate-800 px-1.5 rounded text-slate-700 dark:text-slate-200 font-mono shadow-sm border border-slate-100 dark:border-slate-700">1.00</span>
                             </div>
                             <input type="range" min="0.5" max="5.0" step="0.01" value="1.0" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('templeScale', this.value)">

@@ -760,7 +760,7 @@ export default function AdminPanel() {
                   ${viewMode === 'list' ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}
                 `}
                             >
-                                Gestão de Óculos
+                                Gestão de óculos
                             </button>
                             <button
                                 onClick={() => { setViewMode('config'); setConfigMenu('main'); }}
@@ -909,7 +909,7 @@ export default function AdminPanel() {
                         <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-6">
                             <div>
                                 <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-                                    Gestão de Óculos
+                                    Gestão de óculos
                                 </h2>
                                 <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm font-medium">
                                     Gerencie todo o seu catálogo em um só lugar.
@@ -948,7 +948,7 @@ export default function AdminPanel() {
                                     onClick={() => handleOpenEditor()}
                                 >
                                     <Plus className="w-5 h-5 mr-1.5" />
-                                    Novo Modelo
+                                    Novo Óculos
                                 </Button>
                             </div>
                         </div>
@@ -1083,7 +1083,7 @@ export default function AdminPanel() {
                                                 </div>
                                                 <div className="flex-1 text-left">
                                                     <h3 className="font-bold text-slate-800 group-hover:text-green-600">
-                                                        Gerar Link WhatsApp
+                                                        Configurações do WhatsApp
                                                     </h3>
                                                     <p className="text-xs text-slate-500">Configure botões de compra automáticos</p>
                                                 </div>
@@ -1203,9 +1203,9 @@ export default function AdminPanel() {
                                                         </div>
                                                         <div className="flex-1 space-y-2 pt-1">
                                                             <div className="flex justify-between items-start">
-                                                                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Logo 1</h4>
+                                                                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Logo (Quadrado)</h4>
                                                             </div>
-                                                            <p className="text-[12px] text-slate-500 leading-snug">Exibido em celulares e no navegador (quadrado).</p>
+                                                            <p className="text-[12px] text-slate-500 leading-snug"></p>
                                                             <div className="flex gap-3 pt-1">
                                                                 <label className="text-xs font-semibold text-blue-600 cursor-pointer hover:text-blue-700">
                                                                     {logoUrl ? 'Trocar' : 'Enviar Logo'}
@@ -1234,9 +1234,9 @@ export default function AdminPanel() {
                                                         </div>
                                                         <div className="flex-1 space-y-2 pt-1">
                                                             <div className="flex justify-between items-start">
-                                                                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Logo 2</h4>
+                                                                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Logo (Retângulo)</h4>
                                                             </div>
-                                                            <p className="text-[12px] text-slate-500 leading-snug">Exibido no topo do site em computadores.</p>
+                                                            <p className="text-[12px] text-slate-500 leading-snug"></p>
                                                             <div className="flex gap-3 pt-1">
                                                                 <label className="text-xs font-semibold text-blue-600 cursor-pointer hover:text-blue-700">
                                                                     {logoRectUrl ? 'Trocar' : 'Enviar Logo'}
@@ -1257,7 +1257,7 @@ export default function AdminPanel() {
                                                 {/* Colors & Features */}
                                                 <section className="space-y-8">
                                                     <div>
-                                                        <Label className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] mb-4 block">Personalização</Label>
+                                                        <Label className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] mb-4 block">Editor</Label>
                                                         <div className="space-y-4">
                                                             {/* Color Picker */}
                                                             <div className="flex items-center gap-4 group cursor-pointer" onClick={() => document.getElementById('color-picker')?.click()}>
@@ -1271,7 +1271,7 @@ export default function AdminPanel() {
                                                                     />
                                                                 </div>
                                                                 <div>
-                                                                    <h4 className="text-sm font-medium text-slate-900 dark:text-white">Cor da Marca</h4>
+                                                                    <h4 className="text-sm font-medium text-slate-900 dark:text-white">Cor</h4>
                                                                     <p className="text-xs text-slate-500">Define o tom dos botões e detalhes</p>
                                                                 </div>
                                                             </div>
@@ -1375,7 +1375,7 @@ export default function AdminPanel() {
                                                     {/* Lista de Contatos */}
                                                     <div className="space-y-3">
                                                         <div className="flex items-center justify-between">
-                                                            <h3 className="text-sm font-bold text-slate-800">Vendedores / Contatos</h3>
+                                                            <h3 className="text-sm font-bold text-slate-800">WhatsApp Comercial</h3>
                                                             {waContacts.length < waSlots && (
                                                                 <Button
                                                                     size="sm"

@@ -154,7 +154,7 @@ export default function VitrineLayout({
                         <h1 className="text-2xl md:text-3xl font-medium text-slate-900 mb-1">
                             {profile.store_name || 'Vitrine Virtual'}
                         </h1>
-                        <p className="text-sm text-slate-500">Encontre o óculos perfeito para você</p>
+                        <p className="text-sm text-slate-500">Envie o banner da sua ótica!</p>
                     </div>
                 </section>
             )}
