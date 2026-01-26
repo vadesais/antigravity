@@ -710,8 +710,8 @@ export default function AdminPanel() {
                             </div>
                         )}
                         <div>
-                            <h1 className="text-xl font-bold text-blue-600 dark:text-blue-500 tracking-tight">
-                                Painel de Controle
+                            <h1 className="text-xl font-light text-slate-900 dark:text-white tracking-tight">
+                                {storeName || 'Painel de Controle'}
                             </h1>
                         </div>
                     </div>
@@ -733,13 +733,6 @@ export default function AdminPanel() {
                                     )}
                                 </button>
 
-                                <button
-                                    onClick={handleCopyVitrineLink}
-                                    className="flex items-center gap-1 text-sm text-slate-500 hover:text-blue-600 transition"
-                                    title="Copiar link da vitrine"
-                                >
-                                    {copiedLink ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                                </button>
                                 <a
                                     href={getVitrineUrl()}
                                     target="_blank"
@@ -747,35 +740,35 @@ export default function AdminPanel() {
                                     className="flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg border border-transparent dark:border-blue-900/50"
                                 >
                                     <ExternalLink className="w-4 h-4" />
-                                    Visualizar Site
+                                    Site
                                 </a>
                             </div>
                         )}
 
-                        <div className="hidden md:flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1 border border-transparent dark:border-slate-700">
+                        <div className="hidden md:flex items-center gap-6">
                             <button
                                 onClick={() => { resetForm(); setViewMode('editor'); }}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition flex items-center gap-2
-                  ${viewMode === 'editor' ? 'bg-white dark:bg-[#1e1e1e] shadow text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}
+                                className={`text-sm font-light tracking-wide transition flex items-center gap-2
+                  ${viewMode === 'editor' ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}
                 `}
                             >
-                                <Edit className="w-4 h-4" /> Editor
+                                Editor
                             </button>
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition flex items-center gap-2
-                  ${viewMode === 'list' ? 'bg-white dark:bg-[#1e1e1e] shadow text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}
+                                className={`text-sm font-light tracking-wide transition flex items-center gap-2
+                  ${viewMode === 'list' ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}
                 `}
                             >
-                                <List className="w-4 h-4" /> Gestão
+                                Gestão de Óculos
                             </button>
                             <button
                                 onClick={() => { setViewMode('config'); setConfigMenu('main'); }}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition flex items-center gap-2
-                  ${viewMode === 'config' ? 'bg-white dark:bg-[#1e1e1e] shadow text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}
+                                className={`text-sm font-light tracking-wide transition flex items-center gap-2
+                  ${viewMode === 'config' ? 'text-slate-900 dark:text-white font-medium' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}
                 `}
                             >
-                                <Settings className="w-4 h-4" /> Configuração
+                                Configuração
                             </button>
                         </div>
 
@@ -1379,19 +1372,6 @@ export default function AdminPanel() {
 
                                             {waEnabled && (
                                                 <>
-                                                    {/* Configurações Globais */}
-                                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                                        <Label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                                                            Mensagem Padrão
-                                                        </Label>
-                                                        <Input
-                                                            value={waMessage}
-                                                            onChange={(e) => setWaMessage(e.target.value)}
-                                                            placeholder="Ex: Olá, tenho interesse no modelo"
-                                                            className="bg-white border-slate-200 focus:border-green-500 h-9 text-sm"
-                                                        />
-                                                    </div>
-
                                                     {/* Lista de Contatos */}
                                                     <div className="space-y-3">
                                                         <div className="flex items-center justify-between">
@@ -1467,6 +1447,19 @@ export default function AdminPanel() {
                                                                 ))}
                                                             </div>
                                                         )}
+                                                    </div>
+
+                                                    {/* Mensagem Padrão - Movida para antes do botão Salvar */}
+                                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                                        <Label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                                                            Mensagem Padrão
+                                                        </Label>
+                                                        <Input
+                                                            value={waMessage}
+                                                            onChange={(e) => setWaMessage(e.target.value)}
+                                                            placeholder="Ex: Olá, tenho interesse no modelo"
+                                                            className="bg-white border-slate-200 focus:border-green-500 h-9 text-sm"
+                                                        />
                                                     </div>
                                                 </>
                                             )}

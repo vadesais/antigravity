@@ -41,7 +41,7 @@ const ORIGINAL_HTML_CONTENT = `
         </div>
 
         <!-- DIREITA: PAINEL DE CONTROLES (Compact Mode) -->
-        <div id="editor-panel" class="w-full lg:w-80 flex flex-col gap-3 animate-fade-in h-full overflow-y-auto pr-1">
+        <div id="editor-panel" class="w-full lg:w-80 flex flex-col gap-1.5 animate-fade-in h-full overflow-hidden pr-1">
 
             <!-- CABEÇALHO DO PAINEL -->
             <div class="flex items-center justify-between shrink-0">
@@ -61,9 +61,9 @@ const ORIGINAL_HTML_CONTENT = `
             </div>
 
             <!-- CATEGORIA: FRENTE -->
-            <div class="bg-white dark:bg-[#1e1e1e] p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2 shrink-0 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors" onclick="window.handleClickSection('front')">
+            <div class="bg-white dark:bg-[#1e1e1e] p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm space-y-1 shrink-0 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors" onclick="window.handleClickSection('front')">
                 <div class="group">
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5 uppercase tracking-wide group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <h3 class="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1 uppercase tracking-wide group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         <span class="flex items-center gap-2"><i data-lucide="image" class="w-4 h-4 text-indigo-500"></i> Frente</span>
                         <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-transform" id="icon-chevron-front"></i>
                     </h3>
@@ -92,7 +92,7 @@ const ORIGINAL_HTML_CONTENT = `
                 </div>
 
                 <!-- Sliders Frente (Oculto por padrão) -->
-                <div id="front-controls" class="space-y-2 hidden animate-in fade-in slide-in-from-top-2 duration-300">
+                <div id="front-controls" class="space-y-1 hidden animate-in fade-in slide-in-from-top-2 duration-300">
                     <!-- Escala Geral -->
                     <div>
                         <div class="flex justify-between text-sm font-bold text-slate-500 mb-1">
@@ -100,15 +100,6 @@ const ORIGINAL_HTML_CONTENT = `
                             <span id="val-scale" class="bg-slate-100 px-1.5 rounded text-slate-700 font-mono">1.95</span>
                         </div>
                         <input type="range" min="1.0" max="4.9" step="0.01" value="1.95" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('scale', this.value)">
-                    </div>
-
-                    <!-- Rotacionar (NOVO) -->
-                    <div>
-                        <div class="flex justify-between text-sm font-bold text-slate-500 mb-1">
-                            <span>Rotacionar</span>
-                            <span id="val-rotation" class="bg-slate-100 px-1.5 rounded text-slate-700 font-mono">0°</span>
-                        </div>
-                        <input type="range" min="-20" max="20" step="0.5" value="0" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('rotation', this.value)">
                     </div>
 
                     <!-- Curvatura Frontal -->
@@ -123,16 +114,16 @@ const ORIGINAL_HTML_CONTENT = `
             </div>
 
             <!-- CATEGORIA: HASTES -->
-            <div class="bg-white dark:bg-[#1e1e1e] p-2 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-2 shrink-0 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors" onclick="window.handleClickSection('temple')">
+            <div class="bg-white dark:bg-[#1e1e1e] p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm space-y-1 shrink-0 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors" onclick="window.handleClickSection('temple')">
                 <div class="group">
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5 uppercase tracking-wide group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <h3 class="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1 uppercase tracking-wide group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         <span class="flex items-center gap-2"><i data-lucide="arrow-right-left" class="w-4 h-4 text-indigo-500"></i> Hastes</span>
                         <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-transform" id="icon-chevron-temple"></i>
                     </h3>
                 </div>
 
                 <!-- Upload Card Hastes (DIV not LABEL) -->
-                <div class="part-card p-2 rounded-lg flex items-center gap-3 border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 relative mb-3">
+                <div class="part-card p-2 rounded-lg flex items-center gap-3 border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 relative mb-1">
                     <!-- Left: Preview Box -->
                     <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 overflow-hidden relative shadow-sm shrink-0 flex items-center justify-center">
                         <img id="thumb-temple" class="w-full h-full object-contain hidden">
@@ -156,7 +147,7 @@ const ORIGINAL_HTML_CONTENT = `
                 <!-- Controles das Hastes (Oculto por padrão) -->
                 <div id="temple-controls" class="hidden animate-in fade-in slide-in-from-top-2 duration-300">
                     <!-- AREA DE CONTROLES UNIFICADA -->
-                    <div id="unified-controls" class="space-y-4 pt-1">
+                    <div id="unified-controls" class="space-y-1.5 pt-1">
                         
                         <!-- 1. Tamanho da hastes (Scale) -->
                         <div>
@@ -189,8 +180,8 @@ const ORIGINAL_HTML_CONTENT = `
                 </div>
                 
                 <!-- Botão Seguir (Aparece sempre) -->
-                <div id="btn-follow-container" class="mt-4 pt-2 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <button id="btn-follow" onclick="window.publishAction()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-sm opacity-50">
+                <div id="btn-follow-container" class="mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <button id="btn-follow" onclick="window.publishAction()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all text-sm opacity-50">
                         <span>Seguir</span>
                         <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </button>
@@ -207,6 +198,65 @@ const ORIGINAL_HTML_CONTENT = `
             </div>
         </div>
     
+    <!-- Modal de Alinhamento Automático -->
+    <div id="alignment-modal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div class="bg-white dark:bg-[#1e1e1e] rounded-xl p-4 max-w-lg w-full shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <i data-lucide="align-center-horizontal" class="w-4 h-4 text-indigo-600"></i>
+                    Alinhamento Automático
+                </h3>
+                <button id="close-alignment" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <!-- Preview com guias -->
+            <div id="alignment-canvas-container" class="relative bg-slate-100 dark:bg-slate-900 rounded-lg overflow-hidden mb-3 aspect-video flex items-center justify-center cursor-move">
+                <canvas id="alignment-preview" class="max-w-full max-h-full"></canvas>
+                <!-- Guia horizontal dinâmica (será posicionada via JS) -->
+                <div id="alignment-guide" class="absolute left-0 w-full h-0.5 bg-green-500 opacity-70 pointer-events-none shadow-lg" style="top: 50%;"></div>
+            </div>
+            
+            <!-- Info do ângulo -->
+            <div class="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-2 bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-lg">
+                <span>Ângulo detectado:</span>
+                <span id="detected-angle" class="font-mono font-bold text-indigo-600 dark:text-indigo-400">0.0°</span>
+            </div>
+            
+            <!-- Slider de ajuste fino -->
+            <div class="mb-4">
+                <label class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 block">Ajuste fino (opcional)</label>
+                <input 
+                    type="range" 
+                    id="alignment-slider" 
+                    min="-6" 
+                    max="6" 
+                    step="0.1" 
+                    value="0"
+                    class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                />
+                <div class="flex justify-between text-xs text-slate-400 mt-1">
+                    <span>-6°</span>
+                    <span id="current-adjust" class="font-mono font-bold text-slate-600 dark:text-slate-300">0.0°</span>
+                    <span>+6°</span>
+                </div>
+            </div>
+            
+            <!-- Botões -->
+            <div class="flex gap-2">
+                <button id="cancel-alignment" class="flex-1 px-4 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors">
+                    Cancelar
+                </button>
+                <button id="apply-alignment" class="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    Aplicar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST NOTIFICATION -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 `;
@@ -935,166 +985,431 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
             return img.src;
         }
 
+        function applyTextureToEditor(finalSrc: string, type: string, input: HTMLInputElement) {
+            const processedImg = new Image();
+            processedImg.onload = () => {
+                const thumb = document.getElementById(`thumb-${type}`) as HTMLImageElement;
+                const placeholder = document.getElementById(`icon-${type}-placeholder`);
+
+                if (thumb) {
+                    thumb.src = finalSrc;
+                    thumb.classList.remove('hidden');
+                }
+                if (placeholder) placeholder.classList.add('hidden');
+
+                const controls = document.getElementById(`${type}-controls`);
+                if (controls) controls.classList.remove('hidden');
+
+                // REQ: Auto-hide Front controls if modifying Temple
+                if (type === 'temple') {
+                    const frontCtrls = document.getElementById('front-controls');
+                    if (frontCtrls) frontCtrls.classList.add('hidden');
+
+                    // Update chevrons
+                    const chevronFront = document.getElementById('icon-chevron-front');
+                    if (chevronFront) chevronFront.style.transform = 'rotate(0deg)';
+                    const chevronTemple = document.getElementById('icon-chevron-temple');
+                    if (chevronTemple) chevronTemple.style.transform = 'rotate(180deg)';
+
+                    // Show Follow Button only for Temple upload
+                    const btnFollow = document.getElementById('btn-follow-container');
+                    if (btnFollow) btnFollow.classList.remove('hidden');
+                } else {
+                    // Hide Follow Button if switch back to front (optional, but cleaner)
+                    // const btnFollow = document.getElementById('btn-follow-container');
+                    // if (btnFollow) btnFollow.classList.add('hidden');
+                }
+
+                // Remove transparency from Follow Button
+                const btnFollowObj = document.getElementById('btn-follow');
+                if (btnFollowObj) btnFollowObj.classList.remove('opacity-50');
+
+                // Show Publish Button for ALL uploads
+                // const btnPublish = document.getElementById('btn-publish');
+                // if (btnPublish) btnPublish.classList.remove('hidden');
+
+                // showToast(type === 'front' ? "Frente carregada!" : "Haste carregada!", "success"); // REMOVED BY USER REQUEST
+
+                // Re-init icons to ensure any new state is rendered correctly
+                createIcons({ icons });
+
+                const w = processedImg.width;
+                const h = processedImg.height;
+
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(processedImg, 0, 0, w, h);
+                }
+
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.colorSpace = THREE.SRGBColorSpace;
+                texture.anisotropy = state3D.renderer.capabilities.getMaxAnisotropy();
+                texture.minFilter = THREE.LinearMipmapLinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+                texture.generateMipmaps = true;
+                texture.needsUpdate = true;
+
+                state3D.textures[type] = texture;
+
+                const isFront = type === 'front';
+                const mat = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    transparent: true,
+                    side: isFront ? THREE.DoubleSide : THREE.BackSide,
+                    depthWrite: isFront,
+                    alphaTest: 0.1,
+                    opacity: 1,
+                    visible: true
+                });
+
+                if (type === 'front') {
+                    const frontControls = document.getElementById('front-controls');
+                    if (frontControls) frontControls.classList.remove('hidden');
+
+                    const mesh = state3D.glassesGroup.getObjectByName('front');
+                    if (mesh) {
+                        mesh.material = mat;
+                        const ratio = processedImg.width / processedImg.height;
+                        mesh.scale.set(1, 1, 1);
+                        mesh.geometry = new THREE.PlaneGeometry(3.2, 3.2 / ratio, 32, 1);
+                        mesh.renderOrder = 1;
+
+                        const saved = localStorage.getItem('ar_settings');
+                        if (saved) {
+                            const p = JSON.parse(saved);
+                            if (p.templeX !== undefined) {
+                                update3DParam('templeX', String(p.templeX));
+                                const slider = document.querySelector('input[oninput*="templeX"]') as HTMLInputElement;
+                                if (slider) slider.value = p.templeX;
+                            }
+                        } else {
+                            update3DParam('templeX', "1.55");
+                            const slider = document.querySelector('input[oninput*="templeX"]') as HTMLInputElement;
+                            if (slider) slider.value = "1.55";
+                        }
+
+                        // showToast("Imagem alinhada e otimizada!", "success"); // REMOVED BY USER REQUEST
+                    }
+                } else if (type === 'temple') {
+                    const templeControls = document.getElementById('temple-controls');
+                    if (templeControls) templeControls.classList.remove('hidden');
+
+                    const lMesh = state3D.glassesGroup.getObjectByName('leftTemple');
+                    const rMesh = state3D.glassesGroup.getObjectByName('rightTemple');
+                    const ratio = processedImg.width / processedImg.height;
+                    const geo = new THREE.PlaneGeometry(2, 2 / ratio);
+                    geo.translate(1.0, 0, 0);
+                    if (lMesh) { lMesh.material = mat; lMesh.geometry = geo; lMesh.renderOrder = 2; }
+                    if (rMesh) { rMesh.material = mat; rMesh.geometry = geo; rMesh.renderOrder = 2; }
+
+                    const saved = localStorage.getItem('ar_settings');
+                    if (saved) {
+                        const p = JSON.parse(saved);
+                        if (p.templeZ !== undefined) update3DParam('templeZ', String(p.templeZ));
+                        if (p.templeY !== undefined) update3DParam('templeY', String(p.templeY));
+
+                        const sliderZ = document.querySelector('input[oninput*="templeZ"]') as HTMLInputElement;
+                        if (sliderZ && p.templeZ !== undefined) sliderZ.value = p.templeZ;
+
+                        const sliderY = document.querySelector('input[oninput*="templeY"]') as HTMLInputElement;
+                        if (sliderY && p.templeY !== undefined) sliderY.value = p.templeY;
+                    } else {
+                        update3DParam('templeZ', "0.0");
+                        update3DParam('templeY', "0.21");
+                        const sliderZ = document.querySelector('input[oninput*="templeZ"]') as HTMLInputElement;
+                        if (sliderZ) sliderZ.value = "0.0";
+                        const sliderY = document.querySelector('input[oninput*="templeY"]') as HTMLInputElement;
+                        if (sliderY) sliderY.value = "0.21";
+                    }
+
+                    // showToast("Haste alinhada e otimizada!", "success"); // REMOVED BY USER REQUEST
+                }
+                input.value = '';
+            };
+            processedImg.src = finalSrc;
+        }
+
+        // === SISTEMA DE ALINHAMENTO VISUAL ===
+        function showAlignmentModal(img: HTMLImageElement, type: string, onConfirm: (dataUrl: string) => void) {
+            const modal = document.getElementById('alignment-modal');
+            const canvas = document.getElementById('alignment-preview') as HTMLCanvasElement;
+            const container = document.getElementById('alignment-canvas-container');
+            const guide = document.getElementById('alignment-guide');
+            const slider = document.getElementById('alignment-slider') as HTMLInputElement;
+            const detectedAngleEl = document.getElementById('detected-angle');
+            const currentAdjustEl = document.getElementById('current-adjust');
+            const applyBtn = document.getElementById('apply-alignment');
+            const cancelBtn = document.getElementById('cancel-alignment');
+            const closeBtn = document.getElementById('close-alignment');
+
+            if (!modal || !canvas || !container || !guide) return;
+
+            // Detectar ângulo automático
+            const detectedAngle = detectFrameAngle(img);
+            const detectedDegrees = detectedAngle * (180 / Math.PI);
+
+            if (detectedAngleEl) detectedAngleEl.textContent = `${detectedDegrees.toFixed(1)}°`;
+
+            let manualAdjust = 0;
+            let guidePositionY = 50; // Posição da linha em % (inicia no centro)
+
+            // Renderizar preview
+            function renderPreview() {
+                const totalAngle = detectedAngle + (manualAdjust * Math.PI / 180);
+                drawAlignmentPreview(canvas, img, totalAngle);
+                if (currentAdjustEl) currentAdjustEl.textContent = `${manualAdjust.toFixed(1)}°`;
+
+                // Atualizar posição da linha (fixa durante rotação)
+                guide.style.top = `${guidePositionY}%`;
+            }
+
+            renderPreview();
+
+            // Slider rotaciona APENAS o óculos (linha fica fixa)
+            if (slider) {
+                slider.value = '0';
+                slider.oninput = () => {
+                    manualAdjust = parseFloat(slider.value);
+                    renderPreview();
+                };
+            }
+
+            // === DRAG VERTICAL DA LINHA ===
+            let isDragging = false;
+            let startY = 0;
+            let startGuidePos = 50;
+
+            const onMouseDown = (e: MouseEvent) => {
+                isDragging = true;
+                startY = e.clientY;
+                startGuidePos = guidePositionY;
+                container.style.cursor = 'grabbing';
+            };
+
+            const onMouseMove = (e: MouseEvent) => {
+                if (!isDragging) return;
+
+                const containerRect = container.getBoundingClientRect();
+                const deltaY = e.clientY - startY;
+                const deltaPercent = (deltaY / containerRect.height) * 100;
+
+                // Limitar entre 0% e 100%
+                guidePositionY = Math.max(0, Math.min(100, startGuidePos + deltaPercent));
+
+                // Atualizar apenas a linha (óculos fica fixo)
+                guide.style.top = `${guidePositionY}%`;
+            };
+
+            const onMouseUp = () => {
+                isDragging = false;
+                container.style.cursor = 'move';
+            };
+
+            container.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+
+            // Botão aplicar: processa imagem com ângulo final
+            const applyHandler = () => {
+                const finalAngle = detectedAngle + (manualAdjust * Math.PI / 180);
+                const alignedDataUrl = applyRotationAndCrop(img, finalAngle, type);
+                modal.classList.add('hidden');
+                onConfirm(alignedDataUrl);
+                cleanup();
+            };
+
+            // Botões cancelar/fechar
+            const cancelHandler = () => {
+                modal.classList.add('hidden');
+                cleanup();
+            };
+
+            function cleanup() {
+                if (applyBtn) applyBtn.removeEventListener('click', applyHandler);
+                if (cancelBtn) cancelBtn.removeEventListener('click', cancelHandler);
+                if (closeBtn) closeBtn.removeEventListener('click', cancelHandler);
+                if (slider) slider.oninput = null;
+                container.removeEventListener('mousedown', onMouseDown);
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+            }
+
+            if (applyBtn) applyBtn.addEventListener('click', applyHandler);
+            if (cancelBtn) cancelBtn.addEventListener('click', cancelHandler);
+            if (closeBtn) closeBtn.addEventListener('click', cancelHandler);
+
+            // Mostrar modal
+            modal.classList.remove('hidden');
+            createIcons({ icons }); // Re-init ícones do modal
+        }
+
+        function detectFrameAngle(img: HTMLImageElement): number {
+            // Reutilizar lógica existente de processAndOptimizeImage (linhas 850-864)
+            const rawCanvas = document.createElement('canvas');
+            rawCanvas.width = img.width;
+            rawCanvas.height = img.height;
+            const rawCtx = rawCanvas.getContext('2d');
+            if (!rawCtx) return 0;
+
+            rawCtx.drawImage(img, 0, 0);
+            const rawData = rawCtx.getImageData(0, 0, rawCanvas.width, rawCanvas.height).data;
+
+            let cx = 0, cy = 0, count = 0;
+            for (let y = 0; y < rawCanvas.height; y += 4) {
+                for (let x = 0; x < rawCanvas.width; x += 4) {
+                    const idx = (y * rawCanvas.width + x) * 4 + 3;
+                    if (rawData[idx] > 20) {
+                        cx += x;
+                        cy += y;
+                        count++;
+                    }
+                }
+            }
+            if (count === 0) return 0;
+            cx /= count;
+            cy /= count;
+
+            let mu20 = 0, mu02 = 0, mu11 = 0;
+            for (let y = 0; y < rawCanvas.height; y += 4) {
+                for (let x = 0; x < rawCanvas.width; x += 4) {
+                    const idx = (y * rawCanvas.width + x) * 4 + 3;
+                    if (rawData[idx] > 20) {
+                        const dx = x - cx;
+                        const dy = y - cy;
+                        mu20 += dx * dx;
+                        mu02 += dy * dy;
+                        mu11 += dx * dy;
+                    }
+                }
+            }
+
+            let angle = 0.5 * Math.atan2(2 * mu11, mu20 - mu02);
+            if (Math.abs(angle) < 0.05) angle = 0;
+            return angle;
+        }
+
+        function drawAlignmentPreview(canvas: HTMLCanvasElement, img: HTMLImageElement, angle: number) {
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            // Dimensões do canvas (max 500px de largura)
+            const maxWidth = 500;
+            const scale = Math.min(1, maxWidth / img.width);
+            const displayWidth = img.width * scale;
+            const displayHeight = img.height * scale;
+
+            canvas.width = displayWidth;
+            canvas.height = displayHeight;
+
+            // Limpar
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Desenhar imagem rotacionada (centralizada)
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(angle);
+            ctx.drawImage(img, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+            ctx.restore();
+        }
+
+
+        function applyRotationAndCrop(img: HTMLImageElement, angle: number, type: string): string {
+            // Aplicar rotação e crop usando mesma lógica de processAndOptimizeImage
+            const diag = Math.sqrt(img.width * img.width + img.height * img.height);
+            const rotCanvas = document.createElement('canvas');
+            rotCanvas.width = diag;
+            rotCanvas.height = diag;
+            const rotCtx = rotCanvas.getContext('2d');
+
+            if (!rotCtx) return img.src;
+
+            rotCtx.translate(diag / 2, diag / 2);
+            rotCtx.rotate(angle);
+            rotCtx.drawImage(img, -img.width / 2, -img.height / 2);
+            rotCtx.rotate(-angle);
+            rotCtx.translate(-diag / 2, -diag / 2);
+
+            // Crop e otimizar
+            const rotData = rotCtx.getImageData(0, 0, rotCanvas.width, rotCanvas.height).data;
+            let minX = rotCanvas.width, maxX = 0, minY = rotCanvas.height, maxY = 0;
+            let found = false;
+
+            for (let y = 0; y < rotCanvas.height; y += 2) {
+                for (let x = 0; x < rotCanvas.width; x += 2) {
+                    const alpha = rotData[(y * rotCanvas.width + x) * 4 + 3];
+                    if (alpha > 10) {
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                        found = true;
+                    }
+                }
+            }
+
+            if (!found) return img.src;
+
+            const contentWidth = maxX - minX;
+            const contentHeight = maxY - minY;
+
+            const MAX_WIDTH = type === 'temple' ? 512 : 800;
+
+            let finalWidth = contentWidth;
+            let finalHeight = contentHeight;
+
+            if (finalWidth > MAX_WIDTH) {
+                const ratio = MAX_WIDTH / finalWidth;
+                finalWidth = MAX_WIDTH;
+                finalHeight = Math.round(contentHeight * ratio);
+            }
+
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = finalWidth;
+            finalCanvas.height = finalHeight;
+            const finalCtx = finalCanvas.getContext('2d');
+
+            if (finalCtx) {
+                finalCtx.imageSmoothingEnabled = true;
+                finalCtx.imageSmoothingQuality = 'high';
+
+                finalCtx.drawImage(
+                    rotCanvas,
+                    minX, minY, contentWidth, contentHeight,
+                    0, 0, finalWidth, finalHeight
+                );
+
+                return finalCanvas.toDataURL('image/webp', 0.8);
+            }
+
+            return img.src;
+        }
+
         function uploadTexture(input: HTMLInputElement, type: string) {
             const file = input.files?.[0]; if (!file) return;
-
-            // showToast("Processando imagem...", "info"); // REMOVED BY USER REQUEST
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 const img = new Image();
                 img.onload = () => {
-                    const finalSrc = processAndOptimizeImage(img, type); // Pass Type for dynamic resizing
-
-                    const processedImg = new Image();
-                    processedImg.onload = () => {
-                        const thumb = document.getElementById(`thumb-${type}`) as HTMLImageElement;
-                        const placeholder = document.getElementById(`icon-${type}-placeholder`);
-
-                        if (thumb) {
-                            thumb.src = finalSrc;
-                            thumb.classList.remove('hidden');
-                        }
-                        if (placeholder) placeholder.classList.add('hidden');
-
-                        const controls = document.getElementById(`${type}-controls`);
-                        if (controls) controls.classList.remove('hidden');
-
-                        // REQ: Auto-hide Front controls if modifying Temple
-                        if (type === 'temple') {
-                            const frontCtrls = document.getElementById('front-controls');
-                            if (frontCtrls) frontCtrls.classList.add('hidden');
-
-                            // Update chevrons
-                            const chevronFront = document.getElementById('icon-chevron-front');
-                            if (chevronFront) chevronFront.style.transform = 'rotate(0deg)';
-                            const chevronTemple = document.getElementById('icon-chevron-temple');
-                            if (chevronTemple) chevronTemple.style.transform = 'rotate(180deg)';
-
-                            // Show Follow Button only for Temple upload
-                            const btnFollow = document.getElementById('btn-follow-container');
-                            if (btnFollow) btnFollow.classList.remove('hidden');
-                        } else {
-                            // Hide Follow Button if switch back to front (optional, but cleaner)
-                            // const btnFollow = document.getElementById('btn-follow-container');
-                            // if (btnFollow) btnFollow.classList.add('hidden');
-                        }
-
-                        // Remove transparency from Follow Button
-                        const btnFollowObj = document.getElementById('btn-follow');
-                        if (btnFollowObj) btnFollowObj.classList.remove('opacity-50');
-
-                        // Show Publish Button for ALL uploads
-                        // const btnPublish = document.getElementById('btn-publish');
-                        // if (btnPublish) btnPublish.classList.remove('hidden');
-
-                        // showToast(type === 'front' ? "Frente carregada!" : "Haste carregada!", "success"); // REMOVED BY USER REQUEST
-
-                        // Re-init icons to ensure any new state is rendered correctly
-                        createIcons({ icons });
-
-                        const w = processedImg.width;
-                        const h = processedImg.height;
-
-                        const canvas = document.createElement('canvas');
-                        canvas.width = w;
-                        canvas.height = h;
-                        const ctx = canvas.getContext('2d');
-                        if (ctx) {
-                            ctx.drawImage(processedImg, 0, 0, w, h);
-                        }
-
-                        const texture = new THREE.CanvasTexture(canvas);
-                        texture.colorSpace = THREE.SRGBColorSpace;
-                        texture.anisotropy = state3D.renderer.capabilities.getMaxAnisotropy();
-                        texture.minFilter = THREE.LinearMipmapLinearFilter;
-                        texture.magFilter = THREE.LinearFilter;
-                        texture.generateMipmaps = true;
-                        texture.needsUpdate = true;
-
-                        state3D.textures[type] = texture;
-
-                        const isFront = type === 'front';
-                        const mat = new THREE.MeshBasicMaterial({
-                            map: texture,
-                            transparent: true,
-                            side: isFront ? THREE.DoubleSide : THREE.BackSide,
-                            depthWrite: isFront,
-                            alphaTest: 0.1,
-                            opacity: 1,
-                            visible: true
+                    // Para frente: mostrar modal de alinhamento
+                    if (type === 'front') {
+                        showAlignmentModal(img, type, (alignedDataUrl) => {
+                            applyTextureToEditor(alignedDataUrl, type, input);
                         });
-
-                        if (type === 'front') {
-                            const frontControls = document.getElementById('front-controls');
-                            if (frontControls) frontControls.classList.remove('hidden');
-
-                            const mesh = state3D.glassesGroup.getObjectByName('front');
-                            if (mesh) {
-                                mesh.material = mat;
-                                const ratio = processedImg.width / processedImg.height;
-                                mesh.scale.set(1, 1, 1);
-                                mesh.geometry = new THREE.PlaneGeometry(3.2, 3.2 / ratio, 32, 1);
-                                mesh.renderOrder = 1;
-
-                                const saved = localStorage.getItem('ar_settings');
-                                if (saved) {
-                                    const p = JSON.parse(saved);
-                                    if (p.templeX !== undefined) {
-                                        update3DParam('templeX', String(p.templeX));
-                                        const slider = document.querySelector('input[oninput*="templeX"]') as HTMLInputElement;
-                                        if (slider) slider.value = p.templeX;
-                                    }
-                                } else {
-                                    update3DParam('templeX', "1.55");
-                                    const slider = document.querySelector('input[oninput*="templeX"]') as HTMLInputElement;
-                                    if (slider) slider.value = "1.55";
-                                }
-
-                                // showToast("Imagem alinhada e otimizada!", "success"); // REMOVED BY USER REQUEST
-                            }
-                        } else if (type === 'temple') {
-                            const templeControls = document.getElementById('temple-controls');
-                            if (templeControls) templeControls.classList.remove('hidden');
-
-                            const lMesh = state3D.glassesGroup.getObjectByName('leftTemple');
-                            const rMesh = state3D.glassesGroup.getObjectByName('rightTemple');
-                            const ratio = processedImg.width / processedImg.height;
-                            const geo = new THREE.PlaneGeometry(2, 2 / ratio);
-                            geo.translate(1.0, 0, 0);
-                            if (lMesh) { lMesh.material = mat; lMesh.geometry = geo; lMesh.renderOrder = 2; }
-                            if (rMesh) { rMesh.material = mat; rMesh.geometry = geo; rMesh.renderOrder = 2; }
-
-                            const saved = localStorage.getItem('ar_settings');
-                            if (saved) {
-                                const p = JSON.parse(saved);
-                                if (p.templeZ !== undefined) update3DParam('templeZ', String(p.templeZ));
-                                if (p.templeY !== undefined) update3DParam('templeY', String(p.templeY));
-
-                                const sliderZ = document.querySelector('input[oninput*="templeZ"]') as HTMLInputElement;
-                                if (sliderZ && p.templeZ !== undefined) sliderZ.value = p.templeZ;
-
-                                const sliderY = document.querySelector('input[oninput*="templeY"]') as HTMLInputElement;
-                                if (sliderY && p.templeY !== undefined) sliderY.value = p.templeY;
-                            } else {
-                                update3DParam('templeZ', "0.0");
-                                update3DParam('templeY', "0.21");
-                                const sliderZ = document.querySelector('input[oninput*="templeZ"]') as HTMLInputElement;
-                                if (sliderZ) sliderZ.value = "0.0";
-                                const sliderY = document.querySelector('input[oninput*="templeY"]') as HTMLInputElement;
-                                if (sliderY) sliderY.value = "0.21";
-                            }
-
-                            // showToast("Haste alinhada e otimizada!", "success"); // REMOVED BY USER REQUEST
-                        }
-                        input.value = '';
-                    };
-                    processedImg.src = finalSrc;
+                    } else {
+                        // Para hastes: processo normal
+                        const finalSrc = processAndOptimizeImage(img, type);
+                        applyTextureToEditor(finalSrc, type, input);
+                    }
                 };
                 img.src = e.target?.result as string;
             };
             reader.readAsDataURL(file);
         }
+
 
         function update3DParam(prop: string, val: string) {
             state3D.params[prop] = parseFloat(val);
