@@ -39,7 +39,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/vitrine/:slug" element={<Vitrine />} />
+                <Route path="/p/:slug" element={<Vitrine />} />
                 <Route path="/provador/:glassId" element={<DirectTryOn />} />
                 <Route
                   path="/master"

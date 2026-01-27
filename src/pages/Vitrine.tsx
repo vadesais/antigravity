@@ -123,6 +123,62 @@ export default function Vitrine() {
     });
   }, [fetchStoreData]);
 
+  // Helper function to update or create meta tags
+  const updateMetaTag = (name: string, content: string, attribute: 'name' | 'property' = 'name') => {
+    let element = document.querySelector(`meta[${attribute}="${name}"]`);
+
+    if (!element) {
+      element = document.createElement('meta');
+      element.setAttribute(attribute, name);
+      document.head.appendChild(element);
+    }
+
+    element.setAttribute('content', content);
+  };
+
+  // Update meta tags when store data loads
+  useEffect(() => {
+    if (!profile) return;
+
+    const storeName = profile.store_name || 'Ótica';
+    const title = `${storeName} – Provador Virtual!`;
+
+    // Update document title
+    document.title = title;
+
+    // Update meta tags
+    updateMetaTag('description', `Experimente óculos virtualmente na ${storeName}`);
+    updateMetaTag('og:title', title, 'property');
+    updateMetaTag('og:description', `Experimente óculos virtualmente na ${storeName}`, 'property');
+    updateMetaTag('og:url', window.location.href, 'property');
+    updateMetaTag('og:type', 'website', 'property');
+
+    // Use banner or logo as OG image
+    const imageUrl = profile.banner_url || profile.store_logo_url;
+    if (imageUrl) {
+      updateMetaTag('og:image', imageUrl, 'property');
+    }
+  }, [profile]);
+
+  // Update meta tags when glass is selected for try-on
+  useEffect(() => {
+    if (!selectedGlass || !profile) return;
+
+    const storeName = profile.store_name || 'Ótica';
+    const glassName = selectedGlass.name;
+    const description = `Provador Virtual – Óculos: ${glassName}`;
+
+    // Update description with glass name
+    updateMetaTag('description', description);
+    updateMetaTag('og:description', description, 'property');
+
+    // Use glass image for social sharing
+    const imageUrl = selectedGlass.cover_image_url || selectedGlass.image_url;
+    if (imageUrl) {
+      updateMetaTag('og:image', imageUrl, 'property');
+    }
+  }, [selectedGlass, profile]);
+
   // Force Light Mode on Vitrine
   useEffect(() => {
     document.documentElement.classList.remove('dark');

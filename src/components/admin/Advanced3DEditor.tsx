@@ -336,7 +336,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
             occluderMesh: null,
             textures: { front: null, temple: null },
             params: {
-                scale: 1.95, x: 0.0, y: 0.00, z: -0.3,
+                scale: 1.95, x: 0.0, y: 0.00, z: -0.0,
                 opening: 10, curvature: 0, tilt: 0,
                 rotation: 0,
                 templeX: 1.55, templeY: 0.21, templeZ: 0.0,
@@ -876,6 +876,9 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
 
                 leftT.rotation.y = baseRotLeft;
                 rightT.rotation.y = baseRotRight;
+
+                leftT.rotation.y += 0.03;   // Ajuste manual
+                rightT.rotation.y -= 0.03;  // Ajuste manual
 
                 const tiltRad = state3D.params.tilt * (Math.PI / 180);
                 leftT.rotation.z = -tiltRad;
@@ -1478,7 +1481,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
             state3D.textures = { front: null, temple: null };
             createGlassesMeshes();
             state3D.params = {
-                scale: 1.95, x: 0.0, y: 0.00, z: -0.3,
+                scale: 1.95, x: 0.0, y: 0.00, z: -0.0,
                 opening: 10, curvature: 0, tilt: 0,
                 rotation: 0,
                 templeX: 1.55, templeY: 0.21, templeZ: 0.0,

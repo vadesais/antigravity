@@ -28,7 +28,7 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             occluderMesh: null,
             textures: { front: null, temple: null },
             params: {
-                scale: 1.95, x: 0.0, y: 0.00, z: -0.3,
+                scale: 1.95, x: 0.0, y: 0.00, z: -0.0,
                 opening: 10, curvature: 0, tilt: 0,
                 rotation: 0,
                 templeX: 1.55, templeY: 0.21, templeZ: 0.0,
@@ -36,7 +36,9 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             },
             currentPos: new THREE.Vector3(),
             currentQuat: new THREE.Quaternion(),
+            previousPos: new THREE.Vector3(),
             isTracking: false,
+            scaleHistory: [] as number[], // Para média móvel da escala
         };
 
         let faceMesh: any;
@@ -366,16 +368,31 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             matrix.makeBasis(vecX_ortho, vecY, vecZ);
             const targetQuat = new THREE.Quaternion().setFromRotationMatrix(matrix);
 
-            const smoothFactor = 0.3;
+            // ADAPTIVE SMOOTHING: Ajusta baseado na velocidade do movimento
+            let smoothFactor = 0.5; // Base aumentado de 0.3 para 0.5 (mais responsivo)
 
             if (!state3D.isTracking) {
                 state3D.currentPos.copy(nose);
+                state3D.previousPos.copy(nose);
                 state3D.currentQuat.copy(targetQuat);
                 state3D.isTracking = true;
                 state3D.trackingFrames = 0; // Reset counter on first lock
             } else {
+                // Calcular velocidade do movimento
+                const velocity = state3D.previousPos.distanceTo(nose);
+
+                // Ajustar smoothing baseado na velocidade
+                // Movimento rápido (velocity > 0.5): smoothFactor maior (0.7) = mais responsivo
+                // Movimento lento (velocity < 0.1): smoothFactor menor (0.3) = mais estável
+                if (velocity > 0.5) {
+                    smoothFactor = 0.7; // Resposta rápida para movimentos grandes
+                } else if (velocity < 0.1) {
+                    smoothFactor = 0.3; // Mais suave quando parado
+                }
+
                 state3D.currentPos.lerp(nose, smoothFactor);
                 state3D.currentQuat.slerp(targetQuat, smoothFactor);
+                state3D.previousPos.copy(nose);
 
                 // STABILIZATION BUFFER: Count successful tracking frames
                 state3D.trackingFrames = (state3D.trackingFrames || 0) + 1;
@@ -402,8 +419,17 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             const baseScale = eyeDist / 4.0;
             const finalScale = baseScale * state3D.params.scale;
 
+            // MÉDIA MÓVEL para estabilizar a escala (evita "respiração")
+            state3D.scaleHistory.push(finalScale);
+            if (state3D.scaleHistory.length > 5) {
+                state3D.scaleHistory.shift(); // Mantém apenas os últimos 5 frames
+            }
+
+            // Calcular média dos últimos frames
+            const avgScale = state3D.scaleHistory.reduce((a: number, b: number) => a + b, 0) / state3D.scaleHistory.length;
+
             const currentScale = state3D.glassesGroup.scale.x;
-            const smoothScale = currentScale + (finalScale - currentScale) * smoothFactor;
+            const smoothScale = currentScale + (avgScale - currentScale) * 0.4; // Smoothing mais suave para escala
 
             state3D.glassesGroup.scale.set(smoothScale, smoothScale, smoothScale);
             state3D.occluderMesh.scale.set(baseScale, baseScale, baseScale);

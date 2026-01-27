@@ -185,7 +185,7 @@ export default function AdminPanel() {
 
     const getVitrineUrl = () => {
         if (!profileSlug) return '';
-        return `${window.location.origin}/vitrine/${profileSlug}`;
+        return `${window.location.origin}/p/${profileSlug}`;
     };
 
     const handleCopyVitrineLink = async () => {

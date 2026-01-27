@@ -108,7 +108,7 @@ export default function MasterPanel() {
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
   const getShowcaseUrl = (slug: string) => {
-    return `${window.location.origin}/vitrine/${slug}`;
+    return `${window.location.origin}/p/${slug}`;
   };
 
   const handleCopyLink = async (slug: string) => {

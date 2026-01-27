@@ -124,7 +124,7 @@ export default function DirectTryOn() {
                     onClose={() => {
                         // If we have a slug, redirect to the store's vitrine
                         if (profile?.slug) {
-                            window.location.href = `/vitrine/${profile.slug}`;
+                            window.location.href = `/p/${profile.slug}`;
                         } else {
                             // Fallback if no slug (shouldn't happen for active stores)
                             window.location.reload();

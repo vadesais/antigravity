@@ -37,17 +37,12 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
   }, []);
 
   const cleanup = () => {
-    // Stop animation loop
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
-
-    // Stop video stream
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
-
-    // Close FaceMesh
     if (faceMeshRef.current) {
       faceMeshRef.current.close();
     }
@@ -55,10 +50,7 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
 
   const initializeCamera = async () => {
     try {
-      // Initialize MediaPipe FaceMesh
       await initializeFaceMesh();
-
-      // Start video stream
       await startVideo();
     } catch (err) {
       console.error('Erro ao inicializar câmera:', err);
@@ -68,7 +60,6 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
   };
 
   const initializeFaceMesh = async () => {
-    // Load MediaPipe FaceMesh script
     if (!window.FaceMesh) {
       await new Promise<void>((resolve, reject) => {
         const script = document.createElement('script');
@@ -146,30 +137,24 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw video frame (mirrored)
     ctx.save();
     ctx.scale(-1, 1);
     ctx.drawImage(results.image, -canvas.width, 0, canvas.width, canvas.height);
     ctx.restore();
 
-    // Check if face is detected
     const hasFace = results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0;
     setFaceDetected(hasFace);
 
-    // Draw face mesh if detected
     if (hasFace) {
       const landmarks = results.multiFaceLandmarks[0];
       setLastLandmarks(landmarks);
 
-      // Apply mirroring to landmarks for correct alignment
       ctx.save();
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
 
-      // Define key facial points for clean visualization
       const faceContour = [
         10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
         397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
@@ -189,7 +174,6 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
         375, 321, 405, 314, 17, 84, 181, 91, 146
       ];
 
-      // Draw face contour (clean green outline)
       ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -206,11 +190,9 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
       ctx.closePath();
       ctx.stroke();
 
-      // Draw eyes (subtle)
       ctx.strokeStyle = 'rgba(34, 197, 94, 0.4)';
       ctx.lineWidth = 1.5;
 
-      // Left eye
       ctx.beginPath();
       leftEye.forEach((idx, i) => {
         const point = landmarks[idx];
@@ -225,7 +207,6 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
       ctx.closePath();
       ctx.stroke();
 
-      // Right eye
       ctx.beginPath();
       rightEye.forEach((idx, i) => {
         const point = landmarks[idx];
@@ -240,7 +221,6 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
       ctx.closePath();
       ctx.stroke();
 
-      // Draw lips (subtle)
       ctx.beginPath();
       lips.forEach((idx, i) => {
         const point = landmarks[idx];
@@ -255,16 +235,7 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
       ctx.closePath();
       ctx.stroke();
 
-      // Draw key points (minimalist dots)
-      const keyPoints = [
-        10,   // Forehead top
-        152,  // Chin
-        234,  // Left cheek
-        454,  // Right cheek
-        33,   // Left eye inner
-        263,  // Right eye inner
-        1,    // Nose tip
-      ];
+      const keyPoints = [10, 152, 234, 454, 33, 263, 1];
 
       ctx.fillStyle = 'rgba(34, 197, 94, 0.9)';
       keyPoints.forEach(idx => {
@@ -289,15 +260,12 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
     try {
       setIsAnalyzing(true);
 
-      // Get canvas dimensions
       const canvas = canvasRef.current;
       const width = canvas.width;
       const height = canvas.height;
 
-      // Analyze face shape using the stored landmarks
       const analysis = analyzeFaceShape(lastLandmarks, width, height);
 
-      // Simulate processing time for better UX
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       setIsAnalyzing(false);
@@ -310,9 +278,9 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 w-full">
-      <div className="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden">
-        {/* Video */}
+    <div className="flex flex-col h-full w-full">
+      {/* Camera Preview - Fullscreen on mobile */}
+      <div className="relative w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl" style={{ minHeight: '70vh', maxHeight: '80vh' }}>
         <video
           ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
@@ -322,17 +290,16 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
           style={{ transform: 'scaleX(-1)' }}
         />
 
-        {/* Canvas overlay */}
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full"
         />
 
-        {/* Face detection indicator */}
+        {/* Face detection indicator - Larger and more visible */}
         {cameraReady && !isAnalyzing && (
-          <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-2 rounded-full">
-            <div className={`w-2 h-2 rounded-full ${faceDetected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-white text-xs font-medium">
+          <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2.5 rounded-full shadow-lg">
+            <div className={`w-2.5 h-2.5 rounded-full ${faceDetected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+            <span className="text-white text-sm font-semibold">
               {faceDetected ? 'Rosto detectado' : 'Procurando rosto...'}
             </span>
           </div>
@@ -340,54 +307,59 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
 
         {/* Loading overlay */}
         {isLoading && (
-          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white">
-            <Loader2 className="w-12 h-12 animate-spin mb-4" />
-            <p className="text-sm">Inicializando câmera...</p>
+          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white">
+            <Loader2 className="w-14 h-14 animate-spin mb-4" />
+            <p className="text-base font-medium">Inicializando câmera...</p>
           </div>
         )}
 
         {/* Analyzing overlay */}
         {isAnalyzing && (
-          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white">
-            <Sparkles className="w-12 h-12 animate-pulse mb-4 text-blue-400" />
-            <p className="text-lg font-semibold mb-2">Analisando seu rosto...</p>
+          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white">
+            <Sparkles className="w-14 h-14 animate-pulse mb-4 text-blue-400" />
+            <p className="text-xl font-bold mb-2">Analisando seu rosto...</p>
             <p className="text-sm text-slate-300">Identificando formato e proporções</p>
           </div>
         )}
 
         {/* Error overlay */}
         {error && !isAnalyzing && (
-          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white p-6 text-center">
+          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white p-6 text-center">
             <p className="text-sm mb-4">{error}</p>
             <button
               onClick={() => {
                 setError(null);
                 onBack();
               }}
-              className="px-4 py-2 bg-white text-slate-900 rounded hover:bg-slate-100 transition"
+              className="px-6 py-3 bg-white text-slate-900 rounded-lg font-semibold hover:bg-slate-100 transition"
             >
               Fechar
             </button>
           </div>
         )}
+
+        {/* Instructions overlay - Bottom */}
+        {cameraReady && !error && !isAnalyzing && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-6 pb-8">
+            <p className="text-center text-white text-sm font-medium mb-4">
+              {faceDetected
+                ? '✓ Perfeito! Seu rosto está posicionado corretamente.'
+                : 'Posicione seu rosto no centro da câmera'}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Instructions */}
+      {/* Analyze Button - Fixed at bottom, always visible */}
       {cameraReady && !error && !isAnalyzing && (
-        <div className="text-center w-full">
-          <p className="text-sm text-slate-600 mb-6">
-            {faceDetected
-              ? 'Perfeito! Seu rosto está posicionado corretamente.'
-              : 'Posicione seu rosto no centro da câmera'}
-          </p>
-
+        <div className="mt-4 w-full">
           <button
             onClick={handleCapture}
             disabled={!faceDetected || isAnalyzing}
-            className="px-8 py-3.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
+            className="w-full px-6 py-4 bg-slate-900 text-white text-base font-bold rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg disabled:shadow-none"
           >
             <Sparkles className="w-5 h-5" />
-            Analisar
+            Analisar Rosto
           </button>
         </div>
       )}
