@@ -138,8 +138,8 @@ export default function AdminPanel() {
 
     useEffect(() => {
         const saved = localStorage.getItem('theme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (saved === 'dark' || (!saved && prefersDark)) {
+        // Novos usuários sempre começam no modo claro
+        if (saved === 'dark') {
             setIsDarkMode(true);
             document.documentElement.classList.add('dark');
         } else {
