@@ -145,6 +145,9 @@ export default function AdminPanel() {
         } else {
             setIsDarkMode(false);
             document.documentElement.classList.remove('dark');
+            if (!saved) {
+                localStorage.setItem('theme', 'light');
+            }
         }
     }, []);
 

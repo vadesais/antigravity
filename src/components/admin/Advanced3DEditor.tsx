@@ -10,11 +10,23 @@ const ORIGINAL_HTML_CONTENT = `
     <!-- Header -->
     <!-- Header Removed for Clean Layout -->
     
-    <main class="w-full h-full mx-auto p-2 flex flex-col lg:flex-row gap-2 items-stretch justify-center overflow-hidden">
+    <main class="w-full h-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start justify-center overflow-hidden bg-white dark:bg-[#111]">
 
-        <!-- ESQUERDA: CÂMERA (3D Scene) -->
-        <div class="w-full lg:flex-[1.5] flex flex-col items-center gap-2 relative h-full">
-            <div id="canvas-wrapper" class="relative group w-full bg-black rounded-xl overflow-hidden shadow-lg border border-slate-800 h-full max-h-full">
+        <!-- ESQUERDA: Espaço Reservado (3 colunas) -->
+        <div class="hidden lg:flex lg:col-span-3 h-full flex-col gap-4 opacity-50 pointer-events-none select-none">
+             <div class="border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl h-full max-h-[600px] flex items-center justify-center text-slate-300 dark:text-slate-700">
+                <span class="text-xs font-medium tracking-widest uppercase">Ferramentas Futuras</span>
+            </div>
+        </div>
+
+        <!-- CENTRO: CÂMERA (6 colunas) - Tablet Style -->
+        <div class="lg:col-span-6 flex flex-col items-center justify-center h-full max-h-[90vh] relative">
+            
+            <!-- Tablet Frame -->
+            <div id="canvas-wrapper" class="relative group w-full max-w-[400px] aspect-[9/16] bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-[8px] border-slate-900 dark:border-slate-800 ring-1 ring-white/10">
+                
+                <!-- Camera Notch (Visual Only) -->
+                <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-slate-900 dark:bg-slate-800 rounded-b-xl z-30 pointer-events-none"></div>
                 
                 <!-- Loading Overlay -->
                 <div id="loading-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-30">
@@ -24,8 +36,8 @@ const ORIGINAL_HTML_CONTENT = `
 
                 <!-- Container 3D -->
                 <div id="ar-scene-container" class="w-full h-full">
-                    <video id="video" playsinline autoplay muted></video>
-                    <canvas id="output-canvas"></canvas>
+                    <video id="video" playsinline autoplay muted class="w-full h-full object-cover"></video>
+                    <canvas id="output-canvas" class="w-full h-full absolute top-0 left-0"></canvas>
                 </div>
 
                 <!-- UI Sobreposta (Editor) -->
@@ -34,170 +46,135 @@ const ORIGINAL_HTML_CONTENT = `
                 </div>
             </div>
             
-            <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 bg-white dark:bg-[#1e1e1e] px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm text-xs">
+            <!-- Zoom Info Below Tablet -->
+            <div class="mt-4 flex items-center gap-2 text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-full border border-slate-100 dark:border-slate-800 text-[10px] uppercase tracking-wide">
                 <i data-lucide="zoom-in" class="w-3 h-3 text-indigo-500"></i>
-                <span><b>Scroll</b>: Zoom • <b>Fundo</b>: Move posição</span>
+                <span><b>Scroll</b>: Zoom no Preview</span>
             </div>
         </div>
 
-        <!-- DIREITA: PAINEL DE CONTROLES (Compact Mode) -->
-        <div id="editor-panel" class="w-full lg:w-80 flex flex-col gap-1.5 animate-fade-in h-full overflow-hidden pr-1">
+        <!-- DIREITA: PAINEL DE CONTROLES (3 colunas) -->
+        <div id="editor-panel" class="w-full lg:col-span-3 flex flex-col gap-2 animate-fade-in h-full overflow-hidden">
 
             <!-- CABEÇALHO DO PAINEL -->
-            <div class="flex items-center justify-between shrink-0">
-                <div class="flex items-center gap-3">
-                    <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">
-                        Editor 3D
-                    </h2>
-                    <a 
-                        href="https://www.remove.bg/pt-br" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        class="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors flex items-center gap-1"
-                    >
-                        <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
-                        Remover fundo
-                    </a>
-                    <a 
-                        href="https://wipix.app.br/editor/" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        class="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors flex items-center gap-1"
-                    >
-                        <i data-lucide="glasses" class="w-3.5 h-3.5"></i>
-                        Editar lentes
-                    </a>
-                </div>
+            <div class="flex items-center justify-between shrink-0 mb-2">
                 <div class="flex items-center gap-2">
-                    <!-- Novo Botão Salvar (Topo) - OCULTO -->
-                    <button onclick="window.saveTestConfig()" class="hidden text-xs font-medium text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 px-2 py-1 rounded border border-slate-900 dark:border-slate-600 transition-colors">
-                        Salvar
-                    </button>
-                    <!-- Botão Resetar - OCULTO -->
-                    <button onclick="window.resetEditor()" class="hidden text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded border border-red-100 transition-colors">
-                        Resetar
-                    </button>
-                </div>
-            </div>
-
-            <!-- CATEGORIA: FRENTE -->
-            <div class="bg-white dark:bg-[#1e1e1e] p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm space-y-1 shrink-0 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors" onclick="window.handleClickSection('front')">
-                <div class="group">
-                    <h3 class="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1 uppercase tracking-wide group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                        <span class="flex items-center gap-2"><i data-lucide="image" class="w-4 h-4 text-indigo-500"></i> Frente</span>
-                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-transform" id="icon-chevron-front"></i>
-                    </h3>
-                </div>
-
-                <!-- Upload Card Frente (DIV not LABEL) -->
-                <div class="part-card p-2 rounded-lg flex items-center gap-3 border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 relative">
-                    <!-- Left: Preview Box -->
-                    <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 overflow-hidden relative shadow-sm shrink-0 flex items-center justify-center">
-                        <img id="thumb-front" class="w-full h-full object-contain hidden">
-                        <i data-lucide="image-plus" class="text-slate-300 dark:text-slate-600 w-5 h-5" id="icon-front-placeholder"></i>
+                    <div class="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                        <i data-lucide="settings-2" class="w-4 h-4"></i>
                     </div>
-                    
-                    <!-- Middle: Text -->
-                    <div class="flex-1 min-w-0">
-                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">Frente do óculos</span>
-                        <span class="text-xs text-slate-400 block">Clique no ícone para alterar</span>
-                    </div>
-
-                    <!-- Right: Upload Icon (Acts as TRIGGER) -->
-                    <div class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 shrink-0 cursor-pointer hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-600 hover:border-indigo-200 transition-all" onclick="event.stopPropagation(); document.getElementById('input-front').click()">
-                        <i data-lucide="upload" class="w-4 h-4"></i>
-                    </div>
-
-                    <input type="file" id="input-front" class="hidden" accept="image/png, image/jpeg" onchange="window.uploadTexture(this, 'front')">
-                </div>
-
-                <!-- Sliders Frente (Oculto por padrão) -->
-                <div id="front-controls" class="space-y-1 hidden animate-in fade-in slide-in-from-top-2 duration-300">
-                    <!-- Escala Geral -->
                     <div>
-                        <div class="flex justify-between text-sm font-bold text-slate-500 mb-1">
-                            <span>Tamanho</span>
-                            <span id="val-scale" class="bg-slate-100 px-1.5 rounded text-slate-700 font-mono">1.95</span>
-                        </div>
-                        <input type="range" min="1.0" max="4.9" step="0.01" value="1.95" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('scale', this.value)">
+                        <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Ajustes</h2>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400">Configuração fina</p>
                     </div>
-
-                    <!-- Curvatura Frontal -->
-                    <div>
-                        <div class="flex justify-between text-sm font-bold text-slate-500 mb-1">
-                            <span>Curvatura</span>
-                            <span id="val-curvature" class="bg-indigo-50 text-indigo-700 px-1.5 rounded font-mono">0</span>
-                        </div>
-                        <input type="range" min="0" max="40" step="1" value="0" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('curvature', this.value)">
-                    </div>
-                </div>
-            </div>
-
-            <!-- CATEGORIA: HASTES -->
-            <div class="bg-white dark:bg-[#1e1e1e] p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm space-y-1 shrink-0 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors" onclick="window.handleClickSection('temple')">
-                <div class="group">
-                    <h3 class="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1 uppercase tracking-wide group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                        <span class="flex items-center gap-2"><i data-lucide="arrow-right-left" class="w-4 h-4 text-indigo-500"></i> Hastes</span>
-                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-transform" id="icon-chevron-temple"></i>
-                    </h3>
-                </div>
-
-                <!-- Upload Card Hastes (DIV not LABEL) -->
-                <div class="part-card p-2 rounded-lg flex items-center gap-3 border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 relative mb-1">
-                    <!-- Left: Preview Box -->
-                    <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 overflow-hidden relative shadow-sm shrink-0 flex items-center justify-center">
-                        <img id="thumb-temple" class="w-full h-full object-contain hidden">
-                        <i data-lucide="image-plus" class="text-slate-300 dark:text-slate-600 w-5 h-5" id="icon-temple-placeholder"></i>
-                    </div>
-
-                    <!-- Middle: Text -->
-                    <div class="flex-1 min-w-0">
-                        <span class="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">Hastes do óculos</span>
-                        <span class="text-xs text-slate-400 block">Clique no ícone para alterar</span>
-                    </div>
-
-                    <!-- Right: Upload Icon (Acts as TRIGGER) -->
-                    <div class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 shrink-0 cursor-pointer hover:bg-indigo-50 dark:hover:bg-slate-700 hover:text-indigo-600 hover:border-indigo-200 transition-all" onclick="event.stopPropagation(); document.getElementById('input-temple').click()">
-                        <i data-lucide="upload" class="w-4 h-4"></i>
-                    </div>
-
-                    <input type="file" id="input-temple" class="hidden" accept="image/png, image/jpeg" onchange="window.uploadTexture(this, 'temple')">
                 </div>
                 
-                <!-- Controles das Hastes (Oculto por padrão) -->
-                <div id="temple-controls" class="hidden animate-in fade-in slide-in-from-top-2 duration-300">
-                    <!-- AREA DE CONTROLES UNIFICADA -->
-                    <div id="unified-controls" class="space-y-1.5 pt-1">
-                        
-                        <!-- 1. Tamanho da hastes (Scale) -->
-                        <div>
-                            <div class="flex justify-between text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                <span>Tamanho</span>
-                                <span id="val-templeScale" class="bg-white dark:bg-slate-800 px-1.5 rounded text-slate-700 dark:text-slate-200 font-mono shadow-sm border border-slate-100 dark:border-slate-700">1.00</span>
-                            </div>
-                            <input type="range" min="0.5" max="5.0" step="0.01" value="1.0" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('templeScale', this.value)">
-                        </div>
+                <div class="flex items-center gap-2">
+                    <a href="https://www.remove.bg/pt-br" target="_blank" class="p-1.5 text-slate-400 hover:text-indigo-500 transition-colors" title="Remover Fundo"><i data-lucide="scissors" class="w-4 h-4"></i></a>
+                    <button onclick="window.saveTestConfig()" class="hidden text-xs font-medium text-slate-900 px-2 py-1 rounded border border-slate-900">Salvar</button>
+                    <button onclick="window.resetEditor()" class="hidden text-xs font-medium text-red-500 px-2 py-1">Resetar</button>
+                </div>
+            </div>
 
-                        <!-- 2. Tamanho Horizontal (Length) -->
-                        <div>
-                            <div class="flex justify-between text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                <span>Tamanho Horizontal</span>
-                                <span id="val-templeLength" class="bg-white dark:bg-slate-800 px-1.5 rounded text-slate-700 dark:text-slate-200 font-mono shadow-sm border border-slate-100 dark:border-slate-700">1.00</span>
-                            </div>
-                            <input type="range" min="0.5" max="2.0" step="0.01" value="1.0" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('templeLength', this.value)">
-                        </div>
+            <!-- Scrollable Controls Area -->
+            <div class="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                
+                <!-- CATEGORIA: FRENTE -->
+                <div class="bg-white dark:bg-[#1e1e1e] p-2 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-2 cursor-pointer hover:border-indigo-500/30 transition-all" onclick="window.handleClickSection('front')">
+                    <div class="group flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Frente</h3>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform" id="icon-chevron-front"></i>
+                    </div>
 
-                        <!-- 3. Inclinação (Tilt) -->
+                    <!-- Upload Box Compact -->
+                    <div class="flex items-center gap-3 p-1.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50">
+                        <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
+                            <img id="thumb-front" class="w-full h-full object-contain hidden">
+                            <i data-lucide="image" class="text-slate-300 w-5 h-5" id="icon-front-placeholder"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-medium text-slate-600 dark:text-slate-300">Textura Frontal</p>
+                            <p class="text-[10px] text-slate-400">PNG sem fundo</p>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all text-slate-400" onclick="event.stopPropagation(); document.getElementById('input-front').click()">
+                            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                        </div>
+                        <input type="file" id="input-front" class="hidden" accept="image/png, image/jpeg" onchange="window.uploadTexture(this, 'front')">
+                    </div>
+
+                    <!-- Sliders Frente -->
+                    <div id="front-controls" class="space-y-3 pt-1 hidden animate-in fade-in slide-in-from-top-1">
                         <div>
-                            <div class="flex justify-between text-sm font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                <span>Inclinação</span>
-                                <span id="val-tilt" class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-1.5 rounded font-mono">0°</span>
+                            <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
+                                <span>Tamanho (Escala)</span>
+                                <span id="val-scale" class="text-indigo-600 dark:text-indigo-400">1.95</span>
                             </div>
-                            <input type="range" min="-30" max="30" step="1" value="0" class="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600" oninput="window.update3DParam('tilt', this.value)">
+                            <input type="range" min="1.0" max="4.9" step="0.01" value="1.95" class="slider-range" oninput="window.update3DParam('scale', this.value)">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
+                                <span>Curvatura</span>
+                                <span id="val-curvature" class="text-indigo-600 dark:text-indigo-400">0</span>
+                            </div>
+                            <input type="range" min="0" max="40" step="1" value="0" class="slider-range" oninput="window.update3DParam('curvature', this.value)">
                         </div>
                     </div>
                 </div>
+
+                <!-- CATEGORIA: HASTES -->
+                <div class="bg-white dark:bg-[#1e1e1e] p-2 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-2 cursor-pointer hover:border-indigo-500/30 transition-all" onclick="window.handleClickSection('temple')">
+                    <div class="group flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">Hastes</h3>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform" id="icon-chevron-temple"></i>
+                    </div>
+
+                    <!-- Upload Box Compact -->
+                    <div class="flex items-center gap-3 p-1.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50">
+                        <div class="w-10 h-10 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
+                            <img id="thumb-temple" class="w-full h-full object-contain hidden">
+                            <i data-lucide="arrow-right-left" class="text-slate-300 w-5 h-5" id="icon-temple-placeholder"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-xs font-medium text-slate-600 dark:text-slate-300">Textura Lateral</p>
+                            <p class="text-[10px] text-slate-400">PNG da haste</p>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center cursor-pointer hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all text-slate-400" onclick="event.stopPropagation(); document.getElementById('input-temple').click()">
+                            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                        </div>
+                        <input type="file" id="input-temple" class="hidden" accept="image/png, image/jpeg" onchange="window.uploadTexture(this, 'temple')">
+                    </div>
+                    
+                    <!-- Controles das Hastes -->
+                    <div id="temple-controls" class="hidden animate-in fade-in slide-in-from-top-1 space-y-3 pt-1">
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
+                                <span>Tamanho Vertical</span>
+                                <span id="val-templeScale" class="text-indigo-600 dark:text-indigo-400">1.00</span>
+                            </div>
+                            <input type="range" min="0.5" max="5.0" step="0.01" value="1.0" class="slider-range" oninput="window.update3DParam('templeScale', this.value)">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
+                                <span>Comprimento</span>
+                                <span id="val-templeLength" class="text-indigo-600 dark:text-indigo-400">1.00</span>
+                            </div>
+                            <input type="range" min="0.5" max="2.0" step="0.01" value="1.0" class="slider-range" oninput="window.update3DParam('templeLength', this.value)">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wide">
+                                <span>Inclinação</span>
+                                <span id="val-tilt" class="text-indigo-600 dark:text-indigo-400">0°</span>
+                            </div>
+                            <input type="range" min="-30" max="30" step="1" value="0" class="slider-range" oninput="window.update3DParam('tilt', this.value)">
+                        </div>
+                        
+                         <!-- Parametros Extras Hastes (Posicionamento) - Opcional se cliente pedir -->
+                    </div>
                 </div>
+            </div>
+        </div>
+    </main>
                 
                 <!-- Botão Seguir (Aparece sempre) -->
                 <div id="btn-follow-container" class="mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -239,11 +216,7 @@ const ORIGINAL_HTML_CONTENT = `
                 <div id="alignment-guide" class="absolute left-0 w-full h-0.5 bg-green-500 opacity-70 pointer-events-none shadow-lg" style="top: 50%;"></div>
             </div>
             
-            <!-- Info do ângulo -->
-            <div class="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-2 bg-slate-50 dark:bg-slate-800 px-3 py-2 rounded-lg">
-                <span>Ângulo detectado:</span>
-                <span id="detected-angle" class="font-mono font-bold text-indigo-600 dark:text-indigo-400">0.0°</span>
-            </div>
+
             
             <!-- Slider de ajuste fino -->
             <div class="mb-4">
@@ -269,7 +242,7 @@ const ORIGINAL_HTML_CONTENT = `
                 <button id="cancel-alignment" class="flex-1 px-4 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors">
                     Cancelar
                 </button>
-                <button id="apply-alignment" class="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                <button id="apply-alignment" class="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
                     <i data-lucide="check" class="w-4 h-4"></i>
                     Aplicar
                 </button>
@@ -1178,11 +1151,12 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
 
             let manualAdjust = 0;
             let guidePositionY = 50; // Posição da linha em % (inicia no centro)
+            let zoomLevel = 1.0;
 
             // Renderizar preview
             function renderPreview() {
                 const totalAngle = detectedAngle + (manualAdjust * Math.PI / 180);
-                drawAlignmentPreview(canvas, img, totalAngle);
+                drawAlignmentPreview(canvas, img, totalAngle, zoomLevel);
                 if (currentAdjustEl) currentAdjustEl.textContent = `${manualAdjust.toFixed(1)}°`;
 
                 // Atualizar posição da linha (fixa durante rotação)
@@ -1235,6 +1209,15 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
             window.addEventListener('mousemove', onMouseMove);
             window.addEventListener('mouseup', onMouseUp);
 
+            // Zoom handler
+            const onWheel = (e: WheelEvent) => {
+                e.preventDefault();
+                const delta = -Math.sign(e.deltaY) * 0.1;
+                zoomLevel = Math.max(1.0, Math.min(3.0, zoomLevel + delta));
+                renderPreview();
+            };
+            container.addEventListener('wheel', onWheel, { passive: false });
+
             // Botão aplicar: processa imagem com ângulo final
             const applyHandler = () => {
                 const finalAngle = detectedAngle + (manualAdjust * Math.PI / 180);
@@ -1258,6 +1241,7 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
                 container.removeEventListener('mousedown', onMouseDown);
                 window.removeEventListener('mousemove', onMouseMove);
                 window.removeEventListener('mouseup', onMouseUp);
+                container.removeEventListener('wheel', onWheel);
             }
 
             if (applyBtn) applyBtn.addEventListener('click', applyHandler);
@@ -1314,13 +1298,13 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
             return angle;
         }
 
-        function drawAlignmentPreview(canvas: HTMLCanvasElement, img: HTMLImageElement, angle: number) {
+        function drawAlignmentPreview(canvas: HTMLCanvasElement, img: HTMLImageElement, angle: number, zoom: number = 1.0) {
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
 
             // Dimensões do canvas (max 500px de largura)
             const maxWidth = 500;
-            const scale = Math.min(1, maxWidth / img.width);
+            const scale = Math.min(1, maxWidth / img.width) * zoom;
             const displayWidth = img.width * scale;
             const displayHeight = img.height * scale;
 
@@ -1452,6 +1436,17 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
 
             if (prop === 'templeScale') { const el = document.getElementById('val-templeScale'); if (el) el.innerText = val; }
             if (prop === 'templeLength') { const el = document.getElementById('val-templeLength'); if (el) el.innerText = val; }
+
+            // === VISUAL FEEDBACK: Set "last-active" class ===
+            // Remove from all
+            document.querySelectorAll('input[type="range"].last-active').forEach(el => el.classList.remove('last-active'));
+
+            // Add to current (Query by onclick attribute since we don't have IDs on all inputs)
+            // Note: We use the prop name exactly as it appears in the onclick string
+            const activeInput = document.querySelector(`input[oninput*="'${prop}'"]`);
+            if (activeInput) {
+                activeInput.classList.add('last-active');
+            }
         }
 
         function saveTestConfig() {

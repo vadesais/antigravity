@@ -70,71 +70,107 @@
     height: 100%;
 }
 
-/* Slider Customizado */
+/* Slider Customizado Moderno */
 input[type=range] {
     -webkit-appearance: none;
     background: transparent;
+    cursor: grab;
+    height: 20px;
+    /* Altura suficiente para o thumb não cortar */
 }
 
-/* Thumb (Bolinha) - Estilo Clean e Neutro */
+input[type=range]:active {
+    cursor: grabbing;
+}
+
+/* Thumb (Bolinha) - Estilo Moderno e Maior */
 input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    height: 10px;
-    width: 10px;
+    height: 18px;
+    width: 18px;
     border-radius: 50%;
-    background: #cbd5e1;
-    /* Cinza Neutro (Slate 300) */
-    cursor: pointer;
-    margin-top: -3px;
-    /* (4px track - 10px thumb) / 2 = -3px */
-    transition: background-color 0.2s ease, transform 0.1s;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+    border: 2px solid #4f46e5;
+    /* Indigo 600 - Roxo da marca */
+    margin-top: -6px;
+    /* (6px track - 18px thumb) / 2 = -6px */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.1s ease, box-shadow 0.2s ease, background-color 0.2s, border-color 0.2s;
 }
 
-/* Hover: Um pouco mais escuro */
-input[type=range]:hover::-webkit-slider-thumb {
-    background: #94a3b8;
-    /* Slate 400 */
-}
-
-/* Active: Azul (Selecionado) */
-input[type=range]:active::-webkit-slider-thumb {
-    background: #2563eb;
-    /* Blue 600 */
+/* Estado "Last Active" (Último mexido) - Bolinha preenchida */
+input[type=range].last-active::-webkit-slider-thumb {
+    background: #4f46e5;
+    /* Roxo */
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2);
+    /* Aura roxa */
     transform: scale(1.1);
 }
 
+/* Hover: Realçar levemente */
+input[type=range]:hover::-webkit-slider-thumb {
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    /* Aura roxa suave */
+}
+
+/* Active: Dragging */
+input[type=range]:active::-webkit-slider-thumb {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 6px rgba(79, 70, 229, 0.25);
+}
+
+/* Track (Trilha) */
 input[type=range]::-webkit-slider-runnable-track {
     width: 100%;
-    height: 4px;
-    cursor: pointer;
+    height: 6px;
     background: #e2e8f0;
-    border-radius: 2px;
+    /* Slate 200 */
+    border-radius: 999px;
+    /* Pill shape */
+    transition: background-color 0.2s;
 }
 
 /* DARK MODE OVERRIDES */
-.dark .part-card.active {
-    border-color: #3b82f6;
-    background-color: rgba(37, 99, 235, 0.2);
-    /* semi-transparent blue */
-}
-
 .dark input[type=range]::-webkit-slider-runnable-track {
     background: #334155;
-    /* slate-700 */
+    /* Slate 700 */
 }
 
 .dark input[type=range]::-webkit-slider-thumb {
-    background: #64748b;
-    /* slate-500 */
+    background: #1e293b;
+    /* Slate 800 */
+    border-color: #6366f1;
+    /* Indigo 500 (lighter for dark mode) */
+}
+
+.dark input[type=range].last-active::-webkit-slider-thumb {
+    background: #6366f1;
+    /* Indigo 500 */
+    border-color: #6366f1;
 }
 
 .dark input[type=range]:hover::-webkit-slider-thumb {
-    background: #94a3b8;
-    /* slate-400 */
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
 }
 
 .dark input[type=range]:active::-webkit-slider-thumb {
-    background: #3b82f6;
-    /* blue-600 */
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.3);
+}
+
+/* Custom Scrollbar for Controls Panel */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #475569;
 }

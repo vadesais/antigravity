@@ -434,9 +434,30 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             state3D.glassesGroup.scale.set(smoothScale, smoothScale, smoothScale);
             state3D.occluderMesh.scale.set(baseScale, baseScale, baseScale);
 
+
             state3D.glassesGroup.translateX(state3D.params.x);
-            state3D.glassesGroup.translateY(state3D.params.y);
-            state3D.glassesGroup.translateZ(state3D.params.z);
+
+            // CALIBRATION: Offsets to match Editor (Compensate for screen/camera diffs)
+            const isDesktop = window.innerWidth >= 1024; // Consider Desktop if width >= 1024px
+
+            // Mobile Calibration
+            const MOBILE_OFFSET_X = -0.15; // Ajuste Horizontal (Esquerda/Direita)
+            const MOBILE_OFFSET_Y = 0.00;
+            const MOBILE_OFFSET_Z = +0.00;
+
+            // Desktop Calibration
+            const DESKTOP_OFFSET_X = -0.20; // Ajuste Horizontal (Esquerda/Direita)
+            const DESKTOP_OFFSET_Y = 0.00;
+            const DESKTOP_OFFSET_Z = +0.00;
+
+            // Select Offset based on device
+            const currentOffsetX = isDesktop ? DESKTOP_OFFSET_X : MOBILE_OFFSET_X;
+            const currentOffsetY = isDesktop ? DESKTOP_OFFSET_Y : MOBILE_OFFSET_Y;
+            const currentOffsetZ = isDesktop ? DESKTOP_OFFSET_Z : MOBILE_OFFSET_Z;
+
+            state3D.glassesGroup.translateX(state3D.params.x + currentOffsetX);
+            state3D.glassesGroup.translateY(state3D.params.y + currentOffsetY);
+            state3D.glassesGroup.translateZ(state3D.params.z + currentOffsetZ);
 
             // Apply Mesh Deformations (Curvature, Temple positions in local space)
             const frontMesh = state3D.glassesGroup.getObjectByName('front');
@@ -477,18 +498,27 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                 leftT.position.z = newZ;
                 rightT.position.z = newZ;
 
-                // AJUSTE MANUAL DE INCLINAÇÃO (Fechando as hastes para dentro)
-                // Ajustar Hastes Esquerda
-                const baseRotLeft = (Math.PI / 2) - angleRad + 0.05;
-                // Ajustar Hastes Direita
-                const baseRotRight = -(Math.PI / 2) + angleRad - 0.05;
+                // === AJUSTES FINOS MANUAIS (MOBILE) ===
+                // 1. "Pra dentro/fora": Ajuste quanto a ponta da haste fecha
+                // Valores positivos (ex: 0.1) FECHAM mais a haste (mais pra dentro da orelha)
+                // Valores negativos (ex: -0.1) ABREM mais a haste (mais pra fora)
+                const OFFSET_LEFT_OPENING = 0.1;
+                const OFFSET_RIGHT_OPENING = 0.0;
+
+                // 2. "Altura/Inclinação": Ajuste a altura da ponta da haste
+                const OFFSET_LEFT_TILT = +0.05;
+                const OFFSET_RIGHT_TILT = 0.0;
+
+                // Aplicação dos ajustes:
+                const baseRotLeft = (Math.PI / 2) - angleRad + 0.05 + OFFSET_LEFT_OPENING;
+                const baseRotRight = -(Math.PI / 2) + angleRad - 0.05 - OFFSET_RIGHT_OPENING;
 
                 leftT.rotation.y = baseRotLeft;
                 rightT.rotation.y = baseRotRight;
 
                 const tiltRad = state3D.params.tilt * (Math.PI / 180);
-                leftT.rotation.z = -tiltRad;
-                rightT.rotation.z = tiltRad;
+                leftT.rotation.z = -tiltRad + OFFSET_LEFT_TILT;
+                rightT.rotation.z = tiltRad + OFFSET_RIGHT_TILT;
 
                 const tScale = state3D.params.templeScale;
                 const tLen = state3D.params.templeLength;

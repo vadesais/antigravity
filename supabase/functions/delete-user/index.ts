@@ -50,6 +50,9 @@ serve(async (req) => {
     const targetAuthId = profile?.user_id
     const targetProfileId = userId
 
+    // --- MANUALLY DELETE ALL RELATED DATA TO PREVENT FK ERRORS ---
+
+    // 1. Storage Cleanup (Keep existing logic)
     if (glasses && glasses.length > 0) {
       const filesToDelete: string[] = []
       glasses.forEach((g: any) => {
@@ -68,28 +71,33 @@ serve(async (req) => {
       }
     }
 
-    // Delete Model Generations Files (if any remain)
-    // Currently we delete them instantly, but for cleanup:
-    const { data: generations } = await supabaseAdmin
-      .from('model_generations')
-      .select('result_image_url, glasses_image_url, user_photo_url')
-      .eq('profile_id', targetProfileId)
+    // 2. Database Cleanup (Order matters if no CASCADE)
 
-    if (generations && generations.length > 0) {
-      const filesToDelete: string[] = []
-      generations.forEach((g: any) => {
-        // Logic to extract paths if they exist
-        // ...
-      })
-      // Since we know we clear them, maybe skip complex logic here unless critical.
+    // A. Delete Glasses
+    await supabaseAdmin.from('glasses').delete().eq('store_id', targetProfileId)
+
+    // B. Delete Model Generations
+    await supabaseAdmin.from('model_generations').delete().eq('profile_id', targetProfileId)
+
+    // C. Delete Limits
+    await supabaseAdmin.from('model_generation_limits').delete().eq('profile_id', targetProfileId)
+
+    // D. Delete User Roles (Needs Auth ID)
+    if (targetAuthId) {
+      await supabaseAdmin.from('user_roles').delete().eq('user_id', targetAuthId)
     }
 
-    // 2. Delete User from Auth (This Cascades to public.profiles usually)
+    // 3. Delete User from Auth (This Cascades to public.profiles usually)
     if (targetAuthId) {
       const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(
         targetAuthId
       )
-      if (deleteError) throw deleteError
+      if (deleteError) {
+        console.error("Auth delete error", deleteError)
+        // If Auth delete fails, try deleting profile manually as fallback
+        // but throw mostly.
+        throw deleteError
+      }
     } else {
       // If no auth ID (maybe consistency issue), try delete profile manually
       const { error: deleteProfileError } = await supabaseAdmin
