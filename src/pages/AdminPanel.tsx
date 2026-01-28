@@ -933,6 +933,7 @@ export default function AdminPanel() {
                         editingGlass={editingGlass}
                         waContacts={waContacts} // New prop
                         onSave={async (glassData) => {
+                            console.log('AdminPanel onSave called with:', glassData); // DEBUG
                             setIsSubmitting(true);
                             try {
                                 let targetGlassId = editingGlass?.id;
@@ -973,6 +974,7 @@ export default function AdminPanel() {
                                 }
 
                                 // Handle Tags
+                                console.log('Checking tags:', glassData.tags, 'TargetID:', targetGlassId); // DEBUG
                                 if (glassData.tags && targetGlassId) {
                                     // 1. Delete existing tags for this glass
                                     const { error: deleteError } = await supabase
@@ -981,6 +983,7 @@ export default function AdminPanel() {
                                         .eq('glass_id', targetGlassId);
 
                                     if (deleteError) console.error('Error clearing tags:', deleteError);
+                                    else console.log('Tags cleared successfully');
 
                                     // 2. Insert new tags
                                     if (glassData.tags.length > 0) {
@@ -988,12 +991,14 @@ export default function AdminPanel() {
                                             glass_id: targetGlassId,
                                             tag_id: tagId
                                         }));
+                                        console.log('Inserting tags:', tagInserts); // DEBUG
 
                                         const { error: insertError } = await supabase
                                             .from('glass_tags')
                                             .insert(tagInserts);
 
                                         if (insertError) console.error('Error saving tags:', insertError);
+                                        else console.log('Tags inserted successfully');
                                     }
                                 }
 
