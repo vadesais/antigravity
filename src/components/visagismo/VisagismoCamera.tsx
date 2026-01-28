@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Loader2, Sparkles } from 'lucide-react';
+import { Camera, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { FaceAnalysis } from '@/types/visagismo';
 import { analyzeFaceShape } from '@/utils/faceAnalyzer';
 
@@ -130,6 +130,8 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
     animationFrameRef.current = requestAnimationFrame(loop);
   };
 
+  const lastLandmarksRef = useRef<any>(null);
+
   const onResults = (results: any) => {
     if (!canvasRef.current || !videoRef.current) return;
 
@@ -150,6 +152,7 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
     if (hasFace) {
       const landmarks = results.multiFaceLandmarks[0];
       setLastLandmarks(landmarks);
+      lastLandmarksRef.current = landmarks; // Update ref for stable capturing
 
       ctx.save();
       ctx.translate(canvas.width, 0);
@@ -246,30 +249,79 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
         ctx.arc(x, y, 3, 0, 2 * Math.PI);
         ctx.fill();
       });
-
       ctx.restore();
     }
   };
 
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  // Auto-capture logic
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+
+    if (cameraReady && faceDetected && !isAnalyzing && !isSuccess && !error) {
+      // Wait 1.2s of stability before triggering
+      timeout = setTimeout(() => {
+        handleCapture();
+      }, 1200);
+    }
+
+    return () => clearTimeout(timeout);
+  }, [cameraReady, faceDetected, isAnalyzing, isSuccess, error]);
+
   const handleCapture = async () => {
-    if (!lastLandmarks || !canvasRef.current) {
-      setError('Nenhum rosto detectado. Posicione seu rosto no centro.');
+    if (!lastLandmarksRef.current || !canvasRef.current || isAnalyzing || isSuccess) {
       return;
     }
 
     try {
       setIsAnalyzing(true);
+      const samples: any[] = [];
+      const startTime = Date.now();
+      const ANALYSIS_DURATION = 1500; // 1.5 seconds analysis
+
+      // Sampling loop
+      while (Date.now() - startTime < ANALYSIS_DURATION) {
+        if (lastLandmarksRef.current) {
+          samples.push(JSON.parse(JSON.stringify(lastLandmarksRef.current)));
+        }
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
+      if (samples.length === 0) throw new Error("Could not collect face data");
+
+      // Compute Average Landmarks
+      const numPoints = 468;
+      const averagedLandmarks = new Array(numPoints).fill(null).map(() => ({ x: 0, y: 0, z: 0 }));
+
+      for (const sample of samples) {
+        for (let i = 0; i < numPoints; i++) {
+          averagedLandmarks[i].x += sample[i].x;
+          averagedLandmarks[i].y += sample[i].y;
+          averagedLandmarks[i].z += sample[i].z;
+        }
+      }
+
+      for (let i = 0; i < numPoints; i++) {
+        averagedLandmarks[i].x /= samples.length;
+        averagedLandmarks[i].y /= samples.length;
+        averagedLandmarks[i].z /= samples.length;
+      }
 
       const canvas = canvasRef.current;
       const width = canvas.width;
       const height = canvas.height;
 
-      const analysis = analyzeFaceShape(lastLandmarks, width, height);
-
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const analysis = analyzeFaceShape(averagedLandmarks, width, height);
 
       setIsAnalyzing(false);
-      onCapture(analysis);
+      setIsSuccess(true); // Show success state
+
+      // Wait 1s before redirect
+      setTimeout(() => {
+        onCapture(analysis);
+      }, 1000);
+
     } catch (err) {
       console.error('Erro ao analisar:', err);
       setError('Erro ao processar imagem. Tente novamente.');
@@ -280,7 +332,7 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
   return (
     <div className="flex flex-col h-full w-full">
       {/* Camera Preview - Fullscreen on mobile */}
-      <div className="relative w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl" style={{ minHeight: '70vh', maxHeight: '80vh' }}>
+      <div className="relative w-full flex-1 bg-slate-900 rounded-2xl overflow-hidden shadow-2xl">
         <video
           ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
@@ -295,15 +347,58 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
           className="absolute inset-0 w-full h-full"
         />
 
-        {/* Face detection indicator - Larger and more visible */}
-        {cameraReady && !isAnalyzing && (
-          <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2.5 rounded-full shadow-lg">
-            <div className={`w-2.5 h-2.5 rounded-full ${faceDetected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-            <span className="text-white text-sm font-semibold">
-              {faceDetected ? 'Rosto detectado' : 'Procurando rosto...'}
-            </span>
+        {/* Face Positioning Mold Overlay */}
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          {/* SVG Face Guide */}
+          <div className={`relative transition-all duration-700 ${faceDetected ? 'scale-105 opacity-40' : 'scale-100 opacity-100'}`}>
+            <svg width="240" height="300" viewBox="0 0 240 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Natural Face Outline (Narrower chin, wider forehead) */}
+              <path
+                d="M120 20 C 180 20, 220 70, 220 140 C 220 230, 180 280, 120 280 C 60 280, 20 230, 20 140 C 20 70, 60 20, 120 20 Z"
+                stroke="white"
+                strokeWidth="2.5"
+                strokeDasharray="10 6"
+                className="opacity-90 shadow-sm"
+              />
+
+              {/* Stronger Corners/Guides */}
+              {/* Top Markers (Forehead) */}
+              <path d="M70 20 H 120 H 170" stroke="white" strokeWidth="4" strokeLinecap="round" className="opacity-100 drop-shadow-md" />
+
+              {/* Chin Marker */}
+              <path d="M90 280 H 120 H 150" stroke="white" strokeWidth="4" strokeLinecap="round" className="opacity-100 drop-shadow-md" />
+
+              {/* Side Cheek Markers */}
+              <path d="M20 120 V 160" stroke="white" strokeWidth="4" strokeLinecap="round" className="opacity-100 drop-shadow-md" />
+              <path d="M220 120 V 160" stroke="white" strokeWidth="4" strokeLinecap="round" className="opacity-100 drop-shadow-md" />
+
+              {/* Scanning Line Animation */}
+              <circle cx="120" cy="150" r="100" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+            </svg>
+
+            {/* Central Scanning Effect */}
+            {!faceDetected && (
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-indigo-500/90 shadow-[0_0_20px_rgba(99,102,241,1)] animate-[scan_2s_ease-in-out_infinite]" />
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Status Pills */}
+        <div className="absolute top-6 left-0 right-0 flex justify-center">
+          {cameraReady && !isAnalyzing && !isSuccess && (
+            <div className={`
+                    flex items-center gap-2 px-5 py-2.5 rounded-full backdrop-blur-xl border transition-all duration-500
+                    ${faceDetected
+                ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-100'
+                : 'bg-white/10 border-white/20 text-white'}
+                `}>
+              <div className={`w-2 h-2 rounded-full ${faceDetected ? 'bg-emerald-400 shadow-[0_0_10px_#34d399]' : 'bg-white/50'}`} />
+              <span className="text-sm font-medium tracking-wide">
+                {faceDetected ? 'Mantenha o rosto parado...' : 'Aguardando Rosto...'}
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* Loading overlay */}
         {isLoading && (
@@ -319,6 +414,17 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
             <Sparkles className="w-14 h-14 animate-pulse mb-4 text-blue-400" />
             <p className="text-xl font-bold mb-2">Analisando seu rosto...</p>
             <p className="text-sm text-slate-300">Identificando formato e proporções</p>
+          </div>
+        )}
+
+        {/* Success overlay */}
+        {isSuccess && (
+          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white animate-in fade-in duration-300">
+            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(34,197,94,0.6)]">
+              <CheckCircle2 className="w-10 h-10 text-white" />
+            </div>
+            <p className="text-2xl font-bold mb-2">Análise Concluída!</p>
+            <p className="text-sm text-slate-300">Redirecionando...</p>
           </div>
         )}
 
@@ -339,30 +445,18 @@ export default function VisagismoCamera({ onCapture, onBack }: VisagismoCameraPr
         )}
 
         {/* Instructions overlay - Bottom */}
-        {cameraReady && !error && !isAnalyzing && (
+        {cameraReady && !error && !isAnalyzing && !isSuccess && (
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-6 pb-8">
-            <p className="text-center text-white text-sm font-medium mb-4">
+            <p className="text-center text-white text-sm font-medium mb-4 opacity-80">
               {faceDetected
-                ? '✓ Perfeito! Seu rosto está posicionado corretamente.'
-                : 'Posicione seu rosto no centro da câmera'}
+                ? 'Permaneça imóvel para iniciar...'
+                : 'Posicione seu rosto dentro do molde'}
             </p>
           </div>
         )}
       </div>
 
-      {/* Analyze Button - Fixed at bottom, always visible */}
-      {cameraReady && !error && !isAnalyzing && (
-        <div className="mt-4 w-full">
-          <button
-            onClick={handleCapture}
-            disabled={!faceDetected || isAnalyzing}
-            className="w-full px-6 py-4 bg-slate-900 text-white text-base font-bold rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg disabled:shadow-none"
-          >
-            <Sparkles className="w-5 h-5" />
-            Analisar Rosto
-          </button>
-        </div>
-      )}
+      {/* Removed Manual Button since it's auto-capture now */}
     </div>
   );
 }

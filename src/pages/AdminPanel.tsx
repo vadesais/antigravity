@@ -29,7 +29,8 @@ import {
     X,
     Sparkles,
     Sun,
-    Moon
+    Moon,
+    Tag
 } from 'lucide-react';
 import {
     Select,
@@ -133,6 +134,15 @@ export default function AdminPanel() {
     const [newCategoryName, setNewCategoryName] = useState('');
     const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
+    // Tags state
+    interface Tag {
+        id: string;
+        name: string;
+    }
+    const [tags, setTags] = useState<Tag[]>([]);
+    const [newTagName, setNewTagName] = useState('');
+    const [activeTab, setActiveTab] = useState<'categories' | 'tags'>('categories');
+
     // Dark Mode state
     const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -211,7 +221,7 @@ export default function AdminPanel() {
         try {
             const { data, error } = await supabase
                 .from('glasses')
-                .select('*')
+                .select('*, glass_tags(tag_id)')
                 .eq('store_id', profileId)
                 .order('created_at', { ascending: false });
 
@@ -307,12 +317,88 @@ export default function AdminPanel() {
         }
     };
 
+    // Fetch tags
+    const fetchTags = async () => {
+        if (!profileId) return;
+        try {
+            const { data, error } = await supabase
+                .from('tags')
+                .select('id, name')
+                .eq('store_id', profileId)
+                .order('name');
+
+            if (error) throw error;
+            setTags(data || []);
+        } catch (error) {
+            console.error('Error fetching tags:', error);
+        }
+    };
+
+    // Add new tag
+    const handleAddTag = async () => {
+        if (!profileId || !newTagName.trim()) return;
+
+        // Check duplicate
+        if (tags.some(t => t.name.toLowerCase() === newTagName.trim().toLowerCase())) {
+            toast({
+                title: 'Erro ao adicionar',
+                description: 'Esta tag já existe',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        try {
+            const { data, error } = await supabase
+                .from('tags')
+                .insert({ store_id: profileId, name: newTagName.trim() })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            toast({ title: 'Tag adicionada!' });
+            setNewTagName('');
+            fetchTags();
+        } catch (error: any) {
+            toast({
+                title: 'Erro ao adicionar',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
+
+    // Delete tag
+    const handleDeleteTag = async (tagId: string) => {
+        if (!profileId) return;
+
+        try {
+            const { error } = await supabase
+                .from('tags')
+                .delete()
+                .eq('id', tagId);
+
+            if (error) throw error;
+
+            toast({ title: 'Tag removida!' });
+            fetchTags();
+        } catch (error: any) {
+            toast({
+                title: 'Erro ao remover',
+                description: 'Não foi possível remover a tag',
+                variant: 'destructive',
+            });
+        }
+    };
+
     useEffect(() => {
         if (profileId) {
             fetchGlasses();
             fetchProfileSlug();
             fetchConfig();
             fetchCategories();
+            fetchTags();
         }
     }, [profileId]);
 
@@ -840,11 +926,14 @@ export default function AdminPanel() {
                     <AREditor
                         profileId={profileId || ''}
                         categories={categories}
+                        tags={tags}
                         editingGlass={editingGlass}
                         waContacts={waContacts} // New prop
                         onSave={async (glassData) => {
                             setIsSubmitting(true);
                             try {
+                                let targetGlassId = editingGlass?.id;
+
                                 if (editingGlass) {
                                     const { error } = await supabase
                                         .from('glasses')
@@ -855,13 +944,12 @@ export default function AdminPanel() {
                                             image_url: glassData.image_url,
                                             buy_link: glassData.buy_link || null,
                                             ar_config: glassData.ar_config,
-                                            whatsapp_contact_id: glassData.whatsapp_contact_id || null // Save Contact ID
+                                            whatsapp_contact_id: glassData.whatsapp_contact_id || null
                                         })
                                         .eq('id', editingGlass.id);
                                     if (error) throw error;
-                                    toast({ title: 'Óculos atualizado!' });
                                 } else {
-                                    const { error } = await supabase
+                                    const { data: newGlass, error } = await supabase
                                         .from('glasses')
                                         .insert({
                                             store_id: profileId,
@@ -872,11 +960,41 @@ export default function AdminPanel() {
                                             buy_link: glassData.buy_link || null,
                                             ar_config: glassData.ar_config,
                                             is_custom: false,
-                                            whatsapp_contact_id: glassData.whatsapp_contact_id || null // Save Contact ID
-                                        });
+                                            whatsapp_contact_id: glassData.whatsapp_contact_id || null
+                                        })
+                                        .select()
+                                        .single();
+
                                     if (error) throw error;
-                                    toast({ title: 'Óculos adicionado!' });
+                                    targetGlassId = newGlass.id;
                                 }
+
+                                // Handle Tags
+                                if (glassData.tags && targetGlassId) {
+                                    // 1. Delete existing tags for this glass
+                                    const { error: deleteError } = await supabase
+                                        .from('glass_tags')
+                                        .delete()
+                                        .eq('glass_id', targetGlassId);
+
+                                    if (deleteError) console.error('Error clearing tags:', deleteError);
+
+                                    // 2. Insert new tags
+                                    if (glassData.tags.length > 0) {
+                                        const tagInserts = glassData.tags.map(tagId => ({
+                                            glass_id: targetGlassId,
+                                            tag_id: tagId
+                                        }));
+
+                                        const { error: insertError } = await supabase
+                                            .from('glass_tags')
+                                            .insert(tagInserts);
+
+                                        if (insertError) console.error('Error saving tags:', insertError);
+                                    }
+                                }
+
+                                toast({ title: editingGlass ? 'Óculos atualizado!' : 'Óculos adicionado!' });
                                 resetForm();
                                 setViewMode('list');
                                 fetchGlasses();
@@ -1575,6 +1693,7 @@ export default function AdminPanel() {
                                     </div>
                                 )}
 
+
                                 {configMenu === 'categories' && (
                                     <>
                                         <div className="flex items-center gap-3 mb-6">
@@ -1584,91 +1703,155 @@ export default function AdminPanel() {
                                             >
                                                 <ArrowLeft className="w-4 h-4 text-slate-600" />
                                             </button>
-                                            <h2 className="text-xl font-bold text-slate-800">Gerenciar Categorias</h2>
+                                            <h2 className="text-xl font-bold text-slate-800">Categorias e Tags</h2>
+                                        </div>
+
+                                        {/* Tabs */}
+                                        <div className="flex p-1 bg-slate-100 rounded-xl mb-6">
+                                            <button
+                                                onClick={() => setActiveTab('categories')}
+                                                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'categories' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                            >
+                                                Categorias
+                                            </button>
+                                            <button
+                                                onClick={() => setActiveTab('tags')}
+                                                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'tags' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                            >
+                                                Tags
+                                            </button>
                                         </div>
 
                                         <div className="space-y-6">
-                                            {/* Add Category */}
-                                            <div className="space-y-2">
-                                                <Label className="text-sm font-bold text-slate-700">Nova Categoria</Label>
-                                                <div className="flex gap-2">
-                                                    <Input
-                                                        value={newCategoryName}
-                                                        onChange={(e) => setNewCategoryName(e.target.value)}
-                                                        placeholder="Nome da categoria"
-                                                        onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
-                                                    />
-                                                    <Button
-                                                        onClick={handleAddCategory}
-                                                        className="bg-orange-600 hover:bg-orange-700"
-                                                    >
-                                                        <Plus className="w-4 h-4 mr-1" />
-                                                        Adicionar
-                                                    </Button>
-                                                </div>
-                                            </div>
-
-                                            {/* Categories List */}
-                                            <div className="space-y-2">
-                                                <Label className="text-sm font-bold text-slate-700">Categorias Existentes</Label>
-                                                {categories.length === 0 ? (
-                                                    <div className="text-center py-8 text-slate-400 border border-dashed border-slate-200 rounded-lg">
-                                                        <Layers className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                                        <p className="text-sm">Nenhuma categoria cadastrada</p>
-                                                    </div>
-                                                ) : (
+                                            {/* CATEGORIES TAB */}
+                                            {activeTab === 'categories' && (
+                                                <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
+                                                    {/* Add Category */}
                                                     <div className="space-y-2">
-                                                        {categories.map((cat) => (
-                                                            <div
-                                                                key={cat}
-                                                                className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
+                                                        <Label className="text-sm font-bold text-slate-700">Nova Categoria</Label>
+                                                        <div className="flex gap-2">
+                                                            <Input
+                                                                value={newCategoryName}
+                                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                                placeholder="Nome da categoria"
+                                                                onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
+                                                            />
+                                                            <Button
+                                                                onClick={handleAddCategory}
+                                                                className="bg-indigo-600 hover:bg-indigo-700"
                                                             >
-                                                                <span className="font-medium text-slate-700">{cat}</span>
-                                                                <button
-                                                                    onClick={() => setCategoryToDelete(cat)}
-                                                                    className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition"
-                                                                    title="Remover categoria"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        ))}
+                                                                <Plus className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
                                                     </div>
-                                                )}
-                                            </div>
+
+                                                    {/* List Categories */}
+                                                    <div className="space-y-2">
+                                                        <Label className="text-sm font-bold text-slate-700">Categorias Existentes</Label>
+                                                        {categories.length === 0 ? (
+                                                            <p className="text-sm text-slate-400 italic">Nenhuma categoria cadastrada.</p>
+                                                        ) : (
+                                                            <div className="grid grid-cols-1 gap-2">
+                                                                {categories.map((cat) => (
+                                                                    <div key={cat} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                                                        <span className="font-medium text-slate-700">{cat}</span>
+                                                                        <button
+                                                                            onClick={() => setCategoryToDelete(cat)}
+                                                                            className="text-slate-400 hover:text-red-500 p-1"
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <AlertDialog open={!!categoryToDelete} onOpenChange={() => setCategoryToDelete(null)}>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Excluir Categoria?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Tem certeza que deseja excluir a categoria <b>{categoryToDelete}</b>?
+                                                                    Isso não excluirá os óculos, apenas removerá a categoria deles.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    className="bg-red-600 hover:bg-red-700"
+                                                                    onClick={() => categoryToDelete && handleDeleteCategory(categoryToDelete)}
+                                                                >
+                                                                    Excluir
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
+                                            )}
+
+                                            {/* TAGS TAB */}
+                                            {activeTab === 'tags' && (
+                                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
+                                                        <p className="text-xs text-blue-700 flex items-center gap-2">
+                                                            <Sparkles className="w-4 h-4" />
+                                                            Tags ajudam o Visagismo Digital a recomendar óculos com mais precisão.
+                                                            Crie tags como: "Clássico", "Moderno", "Metal", "Acetato", "Redondo".
+                                                        </p>
+                                                    </div>
+
+                                                    {/* Add Tag */}
+                                                    <div className="space-y-2">
+                                                        <Label className="text-sm font-bold text-slate-700">Nova Tag</Label>
+                                                        <div className="flex gap-2">
+                                                            <Input
+                                                                value={newTagName}
+                                                                onChange={(e) => setNewTagName(e.target.value)}
+                                                                placeholder="Nome da tag (ex: Moderno)"
+                                                                onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+                                                            />
+                                                            <Button
+                                                                onClick={handleAddTag}
+                                                                className="bg-indigo-600 hover:bg-indigo-700"
+                                                            >
+                                                                <Plus className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* List Tags */}
+                                                    <div className="space-y-2">
+                                                        <Label className="text-sm font-bold text-slate-700">Tags Ativas</Label>
+                                                        {tags.length === 0 ? (
+                                                            <p className="text-sm text-slate-400 italic">Nenhuma tag cadastrada.</p>
+                                                        ) : (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {tags.map((tag) => (
+                                                                    <div key={tag.id} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full shadow-sm">
+                                                                        <Tag className="w-3 h-3 text-indigo-500" />
+                                                                        <span className="text-sm font-medium text-slate-700">{tag.name}</span>
+                                                                        <button
+                                                                            onClick={() => handleDeleteTag(tag.id)}
+                                                                            className="text-slate-400 hover:text-red-500 ml-1 p-0.5"
+                                                                        >
+                                                                            <X className="w-3 h-3" />
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </>
                                 )}
-
                             </div>
                         </div>
-                    )
-                }
+                    )}
             </main>
-
-            {/* Alert Dialog for Category Deletion */}
-            <AlertDialog open={!!categoryToDelete} onOpenChange={(open) => !open && setCategoryToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Você está prestes a excluir a categoria <strong>"{categoryToDelete}"</strong>.
-                            Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setCategoryToDelete(null)}>
-                            Cancelar
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={() => categoryToDelete && handleDeleteCategory(categoryToDelete)}
-                            className="bg-red-600 hover:bg-red-700"
-                        >
-                            Excluir
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </div>
     );
 }
+

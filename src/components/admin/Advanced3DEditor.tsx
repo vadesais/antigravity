@@ -12,18 +12,68 @@ const ORIGINAL_HTML_CONTENT = `
     
     <main class="w-full h-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start justify-center overflow-hidden bg-white dark:bg-[#111]">
 
-        <!-- ESQUERDA: Espaço Reservado (3 colunas) -->
-        <div class="hidden lg:flex lg:col-span-3 h-full flex-col gap-4 opacity-50 pointer-events-none select-none">
-             <div class="border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl h-full max-h-[600px] flex items-center justify-center text-slate-300 dark:text-slate-700">
-                <span class="text-xs font-medium tracking-widest uppercase">Ferramentas Futuras</span>
+        <!-- ESQUERDA: FERRAMENTAS DE EDIÇÃO (3 colunas - Igual a Direita) -->
+        <div class="hidden lg:flex lg:col-span-3 h-full flex-col gap-2 animate-fade-in content-start">
+             
+             <!-- HEADER (Match Right Panel) -->
+            <div class="flex items-center gap-2 shrink-0 mb-2 pl-1">
+                <div class="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                    <i data-lucide="image-plus" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">1 - EDIÇÃO</h2>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400">Preparar imagens</p>
+                </div>
+            </div>
+
+            <!-- TOOLS LIST (Match Right Panel Cards) -->
+            <div class="flex flex-col gap-2">
+                
+                <!-- Tool 1 -->
+                <a href="https://www.remove.bg/pt-br" target="_blank" class="block bg-white dark:bg-[#1e1e1e] p-2 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:border-indigo-500/50 hover:shadow-md transition-all group cursor-pointer no-underline">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                            <i data-lucide="scissors" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 transition-colors truncate">Remover Fundo</h3>
+                            <p class="text-[10px] text-slate-400 truncate">remove.bg</p>
+                        </div>
+                        <i data-lucide="external-link" class="w-3 h-3 text-slate-300 group-hover:text-indigo-400"></i>
+                    </div>
+                </a>
+                
+                <!-- Tool 2 -->
+                <a href="https://wipix.app.br/editor/" target="_blank" class="block bg-white dark:bg-[#1e1e1e] p-2 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm hover:border-pink-500/50 hover:shadow-md transition-all group cursor-pointer no-underline">
+                     <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-pink-50 dark:bg-pink-900/30 flex items-center justify-center text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-pink-600 transition-colors truncate">Editor de Lente</h3>
+                            <p class="text-[10px] text-slate-400 truncate">wipix.app.br</p>
+                        </div>
+                         <i data-lucide="external-link" class="w-3 h-3 text-slate-300 group-hover:text-pink-400"></i>
+                    </div>
+                </a>
+
+                 <!-- Info Box -->
+                <div class="mt-2 p-2.5 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/50">
+                    <div class="flex gap-2">
+                         <i data-lucide="info" class="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0"></i>
+                         <p class="text-[10px] text-blue-600 dark:text-blue-300 leading-relaxed font-medium">
+                            Use estas ferramentas para remover fundos ou criar lentes antes de carregar no painel de ajustes.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- CENTRO: CÂMERA (6 colunas) - Tablet Style -->
+        <!-- CENTRO: CÂMERA (6 colunas - Simétrico) -->
         <div class="lg:col-span-6 flex flex-col items-center justify-center h-full max-h-[90vh] relative">
             
-            <!-- Tablet Frame -->
-            <div id="canvas-wrapper" class="relative group w-full max-w-[400px] aspect-[9/16] bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-[8px] border-slate-900 dark:border-slate-800 ring-1 ring-white/10">
+            <!-- Tablet Frame (WIDER) -->
+            <div id="canvas-wrapper" class="relative group w-full max-w-[1024px] aspect-[4/3] bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-[8px] border-slate-900 dark:border-slate-800 ring-1 ring-white/10">
                 
                 <!-- Camera Notch (Visual Only) -->
                 <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-slate-900 dark:bg-slate-800 rounded-b-xl z-30 pointer-events-none"></div>
@@ -54,22 +104,22 @@ const ORIGINAL_HTML_CONTENT = `
         </div>
 
         <!-- DIREITA: PAINEL DE CONTROLES (3 colunas) -->
-        <div id="editor-panel" class="w-full lg:col-span-3 flex flex-col gap-2 animate-fade-in h-full overflow-hidden">
+        <div id="editor-panel" class="w-full lg:col-span-3 flex flex-col gap-4 animate-fade-in h-full overflow-hidden">
 
-            <!-- CABEÇALHO DO PAINEL -->
-            <div class="flex items-center justify-between shrink-0 mb-2">
+            <!-- CABEÇALHO DO PAINEL DE AJUSTES (RENOMEADO) -->
+            <div class="flex items-center justify-between shrink-0 mb-1">
+
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                        <i data-lucide="settings-2" class="w-4 h-4"></i>
+                        <i data-lucide="sliders" class="w-4 h-4"></i>
                     </div>
                     <div>
-                        <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Ajustes</h2>
-                        <p class="text-[10px] text-slate-500 dark:text-slate-400">Configuração fina</p>
+                        <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">2 - AJUSTES</h2>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400">Criação / Edição 3D</p>
                     </div>
                 </div>
                 
                 <div class="flex items-center gap-2">
-                    <a href="https://www.remove.bg/pt-br" target="_blank" class="p-1.5 text-slate-400 hover:text-indigo-500 transition-colors" title="Remover Fundo"><i data-lucide="scissors" class="w-4 h-4"></i></a>
                     <button onclick="window.saveTestConfig()" class="hidden text-xs font-medium text-slate-900 px-2 py-1 rounded border border-slate-900">Salvar</button>
                     <button onclick="window.resetEditor()" class="hidden text-xs font-medium text-red-500 px-2 py-1">Resetar</button>
                 </div>
@@ -1575,8 +1625,62 @@ const Advanced3DEditor: React.FC<Advanced3DEditorProps> = ({ onPublish, initialD
         init();
 
         return () => {
+            console.log("Cleaning up Advanced3DEditor...");
+
+            // 1. Stop Animation Loop
             if (animationId) cancelAnimationFrame(animationId);
-            // Clean up video stream traces if necessary
+
+            // 2. Stop Camera Stream
+            if (video && video.srcObject) {
+                const stream = video.srcObject as MediaStream;
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+
+            // 3. Dispose Three.js Resources
+            if (state3D.renderer) {
+                state3D.renderer.dispose();
+                state3D.renderer.forceContextLoss();
+                state3D.renderer.domElement = null;
+                state3D.renderer = null;
+            }
+
+            if (state3D.scene) {
+                state3D.scene.traverse((object: any) => {
+                    if (object.geometry) object.geometry.dispose();
+                    if (object.material) {
+                        if (Array.isArray(object.material)) {
+                            object.material.forEach((mat: any) => mat.dispose());
+                        } else {
+                            object.material.dispose();
+                        }
+                    }
+                });
+                state3D.scene = null;
+            }
+
+            if (state3D.textures) {
+                if (state3D.textures.front) state3D.textures.front.dispose();
+                if (state3D.textures.temple) state3D.textures.temple.dispose();
+                state3D.textures = { front: null, temple: null };
+            }
+
+            // 4. Cleanup FaceMesh
+            if (faceMesh) {
+                try {
+                    faceMesh.close();
+                } catch (e) {
+                    console.warn("Error closing FaceMesh:", e);
+                }
+                faceMesh = null;
+            }
+
+            // 5. Cleanup DOM references in State
+            state3D.camera = null;
+            state3D.glassesGroup = null;
+            state3D.occluderMesh = null;
+
+            console.log("Cleanup complete.");
         };
 
     }, []);

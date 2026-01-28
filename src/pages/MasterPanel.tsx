@@ -280,6 +280,16 @@ export default function MasterPanel() {
         if (fnError) throw fnError;
         if (data?.error) throw new Error(data.error);
 
+        // FORCE BLACK COLOR FOR NEW STORES
+        if (data?.userId) {
+          const { error: colorError } = await supabase
+            .from('profiles')
+            .update({ store_color: '#000000' })
+            .eq('id', data.userId);
+
+          if (colorError) console.error("Error setting default color:", colorError);
+        }
+
         toast({
           title: 'Ótica criada!',
           description: `${storeName} foi adicionada com sucesso.`,
@@ -390,12 +400,35 @@ export default function MasterPanel() {
       if (data?.error) throw new Error(data.error);
 
       toast({ title: 'Ótica e dados excluídos com sucesso' });
+
+      // Update local state immediately to avoid ghost items
+      setProfiles(prev => prev.filter(p => p.id !== profileId));
+
+      // Fetch fresh data in background
       fetchProfiles();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting user:', error);
+
+      let errorMessage = 'Erro desconhecido';
+
+      // Try to parse execution context error from Supabase Functions
+      if (error && typeof error === 'object' && 'context' in error) {
+        try {
+          const context = await error.context.json();
+          if (context && context.error) {
+            errorMessage = context.error;
+          }
+        } catch (e) {
+          // Failed to parse JSON body
+          errorMessage = error.message || 'Erro de execução da função';
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: 'Erro ao excluir',
-        description: (error instanceof Error ? error.message : 'Erro desconhecido'),
+        description: errorMessage,
         variant: 'destructive',
       });
       setLoading(false);

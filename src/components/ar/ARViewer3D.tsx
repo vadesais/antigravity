@@ -149,6 +149,9 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
         }
 
         async function loadTextures() {
+            // Get Max Anisotropy from Renderer
+            const maxAnisotropy = state3D.renderer ? state3D.renderer.capabilities.getMaxAnisotropy() : 16;
+
             const promises = [];
 
             // Load Front Image
@@ -170,6 +173,7 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                         texture.colorSpace = THREE.SRGBColorSpace;
                         texture.minFilter = THREE.LinearMipmapLinearFilter;
                         texture.magFilter = THREE.LinearFilter;
+                        texture.anisotropy = maxAnisotropy; // FORCE HIGH QUALITY
                         texture.generateMipmaps = true;
                         texture.needsUpdate = true;
                         state3D.textures.front = texture;
@@ -193,6 +197,7 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
                         texture.colorSpace = THREE.SRGBColorSpace;
                         texture.minFilter = THREE.LinearMipmapLinearFilter;
                         texture.magFilter = THREE.LinearFilter;
+                        texture.anisotropy = maxAnisotropy; // FORCE HIGH QUALITY
                         texture.generateMipmaps = true;
                         texture.needsUpdate = true;
                         state3D.textures.temple = texture;
@@ -441,12 +446,12 @@ const ARViewer3D: React.FC<ARViewer3DProps> = ({ glass }) => {
             const isDesktop = window.innerWidth >= 1024; // Consider Desktop if width >= 1024px
 
             // Mobile Calibration
-            const MOBILE_OFFSET_X = -0.15; // Ajuste Horizontal (Esquerda/Direita)
+            const MOBILE_OFFSET_X = -0.00; // Ajuste Horizontal (Esquerda/Direita)
             const MOBILE_OFFSET_Y = 0.00;
             const MOBILE_OFFSET_Z = +0.00;
 
             // Desktop Calibration
-            const DESKTOP_OFFSET_X = -0.20; // Ajuste Horizontal (Esquerda/Direita)
+            const DESKTOP_OFFSET_X = -0.02; // Ajuste Horizontal (Esquerda/Direita)
             const DESKTOP_OFFSET_Y = 0.00;
             const DESKTOP_OFFSET_Z = +0.00;
 

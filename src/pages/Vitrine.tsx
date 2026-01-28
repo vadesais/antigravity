@@ -36,6 +36,11 @@ interface Glass {
   buy_link: string | null;
   ar_config: any;
   active: boolean | null;
+  glass_tags?: {
+    tags: {
+      name: string;
+    } | null;
+  }[];
 }
 
 export default function Vitrine() {
@@ -100,7 +105,7 @@ export default function Vitrine() {
       // Fetch active glasses for this store
       const { data: glassesData, error: glassesError } = await supabase
         .from('glasses')
-        .select('*')
+        .select('*, glass_tags(tags(name))')
         .eq('store_id', profileData.id)
         .eq('active', true)
         .order('created_at', { ascending: false });
@@ -282,7 +287,7 @@ export default function Vitrine() {
     );
   }
 
-  const primaryColor = profile.store_color || '#2563eb';
+  const primaryColor = profile.store_color || '#000000';
 
   return (
     <>

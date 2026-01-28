@@ -89,7 +89,7 @@ export default function ARComponentsPanel({
     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-          <Layers className="w-5 h-5 text-blue-600" /> Componentes
+          <Layers className="w-5 h-5 text-blue-600" />2 - AJUSTES
         </h2>
         <div className="flex gap-2">
           <button

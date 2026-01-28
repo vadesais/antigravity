@@ -15,6 +15,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import Advanced3DEditor from '../admin/Advanced3DEditor';
 
@@ -27,11 +43,18 @@ interface EditingGlass {
   buy_link: string | null;
   ar_config: any;
   whatsapp_contact_id?: string | null;
+  glass_tags?: { tag_id: string }[];
+}
+
+interface Tag {
+  id: string;
+  name: string;
 }
 
 interface AREditorProps {
   profileId: string;
   categories: string[];
+  tags?: Tag[]; // New prop
   onSave: (glassData: {
     name: string;
     price: string;
@@ -41,6 +64,7 @@ interface AREditorProps {
     ar_config: any;
     cover_image_url: string | null;
     whatsapp_contact_id?: string | null;
+    tags?: string[]; // New prop
   }) => Promise<void>;
   editingGlass?: EditingGlass | null;
   onCancel?: () => void;
@@ -57,6 +81,7 @@ interface AREditorProps {
 export default function AREditor({
   profileId,
   categories,
+  tags = [], // Default empty
   onSave,
   editingGlass,
   onCancel,
@@ -95,6 +120,16 @@ export default function AREditor({
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [linkType, setLinkType] = useState<'whatsapp' | 'website'>('whatsapp');
   const [selectedContactId, setSelectedContactId] = useState<string>('default'); // Multi-WA State
+
+  // Tags State
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [openTagCombobox, setOpenTagCombobox] = useState(false);
+
+  useEffect(() => {
+    if (editingGlass?.glass_tags) {
+      setSelectedTags(editingGlass.glass_tags.map(gt => gt.tag_id));
+    }
+  }, [editingGlass]);
 
   // Auto-generate WhatsApp link based on selected contact
   useEffect(() => {
@@ -341,6 +376,7 @@ export default function AREditor({
       ar_config: arConfig,
       cover_image_url: coverImageUrl,
       whatsapp_contact_id: selectedContactId !== 'default' ? selectedContactId : null,
+      tags: selectedTags, // Pass tags
     });
   };
 
@@ -504,6 +540,68 @@ export default function AREditor({
                         </Select>
                       </div>
                     </div>
+
+                    {/* Tags MultiSelect */}
+                    <div>
+                      <Label className="text-xs font-bold text-slate-500 uppercase mb-1">Tags</Label>
+                      <Popover open={openTagCombobox} onOpenChange={setOpenTagCombobox}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openTagCombobox}
+                            className="w-full justify-between h-auto min-h-[36px] py-2 px-3 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                          >
+                            {selectedTags.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {selectedTags.map(tagId => {
+                                  const tag = tags?.find(t => t.id === tagId);
+                                  return tag ? (
+                                    <Badge key={tagId} variant="secondary" className="mr-0.5 px-1.5 py-0 h-5 text-[10px] bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 pointer-events-none">
+                                      {tag.name}
+                                    </Badge>
+                                  ) : null
+                                })}
+                              </div>
+                            ) : (
+                              <span className="text-slate-500 font-normal">Selecione tags...</span>
+                            )}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar tag..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhuma tag encontrada.</CommandEmpty>
+                              <CommandGroup>
+                                {tags?.map((tag) => (
+                                  <CommandItem
+                                    key={tag.id}
+                                    value={tag.name}
+                                    onSelect={() => {
+                                      setSelectedTags(prev =>
+                                        prev.includes(tag.id)
+                                          ? prev.filter(id => id !== tag.id)
+                                          : [...prev, tag.id]
+                                      )
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedTags.includes(tag.id) ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {tag.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
                 </div>
 
@@ -593,7 +691,7 @@ export default function AREditor({
   return (
     <div className="w-full flex flex-col lg:flex-row gap-8 items-start">
       {/* Left: AR Camera */}
-      <div className="w-full lg:flex-[1.5] flex flex-col items-center gap-6">
+      <div className="w-full lg:flex-[2.5] flex flex-col items-center gap-6">
         <ARCamera
           model={model}
           editingPart={editingPart}
@@ -611,6 +709,45 @@ export default function AREditor({
 
       {/* Right: Controls Panel */}
       <div className="w-full lg:w-96 flex flex-col gap-6 lg:sticky lg:top-28">
+
+        {/* NEW: External Tools Section */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h2 className="text-base font-bold text-slate-800 flex items-center gap-2 mb-4">
+            <ImageIcon className="w-5 h-5 text-indigo-600" /> 1 - EDIÇÃO
+          </h2>
+          <div className="space-y-3">
+            <a
+              href="https://www.remove.bg/pt-br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all cursor-pointer group"
+            >
+              <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                <ImageIcon className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <span className="text-sm font-bold text-slate-700 group-hover:text-indigo-700 block">Remover Fundo</span>
+                <span className="text-xs text-slate-400">remove.bg</span>
+              </div>
+            </a>
+
+            <a
+              href="https://wipix.app.br/editor/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all cursor-pointer group"
+            >
+              <div className="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center group-hover:bg-pink-200 transition-colors">
+                <Sparkles className="w-5 h-5 text-pink-600" />
+              </div>
+              <div>
+                <span className="text-sm font-bold text-slate-700 group-hover:text-pink-700 block">Editor de Lente</span>
+                <span className="text-xs text-slate-400">wipix.app.br</span>
+              </div>
+            </a>
+          </div>
+        </div>
+
         {/* Components Panel */}
         <ARComponentsPanel
           model={model}

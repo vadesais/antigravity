@@ -597,7 +597,7 @@ export default function ARCamera({
     <div className="w-full flex flex-col items-center gap-6">
       <div
         ref={wrapperRef}
-        className="relative w-full max-w-[720px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-200"
+        className="relative w-full max-w-[1024px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-200"
         style={{
           aspectRatio: '4/3',
           cursor: cursorStyle,
