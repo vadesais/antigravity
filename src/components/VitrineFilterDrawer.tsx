@@ -63,64 +63,62 @@ export default function VitrineFilterDrawer({
 
                         {categories.map((category) => {
                             const categoryTags = tagsByCategory[category] || [];
-                            const isCategorySelected = selectedCategories.includes(category);
+                            // We treat Category as a section header. Filtering is done by Tags.
 
                             return (
                                 <AccordionItem key={category} value={category} className="border-b border-slate-100 last:border-0">
-                                    <div className="flex items-center justify-between py-1">
-                                        {/* Wrapper for checkbox + accordion trigger visual */}
-                                        <div className="flex items-center gap-3 flex-1">
-                                            <Checkbox
-                                                id={`cat-${category}`}
-                                                checked={isCategorySelected}
-                                                onCheckedChange={() => onToggleCategory(category)}
-                                                className="data-[state=checked]:bg-black data-[state=checked]:text-white border-slate-300 w-5 h-5 rounded-md"
-                                                style={{
-                                                    borderColor: isCategorySelected ? primaryColor : undefined,
-                                                    backgroundColor: isCategorySelected ? primaryColor : undefined
-                                                }}
-                                            />
-                                            <AccordionTrigger className="hover:no-underline py-2 text-base font-medium text-slate-800 flex-1 text-left">
-                                                {category}
-                                                {isCategorySelected && (
-                                                    <span className="ml-2 text-xs font-normal text-slate-400">
-                                                        ({categoryTags.length})
-                                                    </span>
-                                                )}
-                                            </AccordionTrigger>
-                                        </div>
-                                    </div>
-
-                                    <AccordionContent className="pl-8 pb-4">
-                                        {categoryTags.length > 0 ? (
-                                            <div className="flex flex-col gap-3 pt-1">
-                                                {categoryTags.map(tag => {
-                                                    const isTagSelected = selectedTags.includes(tag);
-                                                    return (
-                                                        <div key={tag} className="flex items-center gap-2">
-                                                            <Checkbox
-                                                                id={`tag-${tag}`}
-                                                                checked={isTagSelected}
-                                                                onCheckedChange={() => onToggleTag(tag)}
-                                                                className="border-slate-200 w-4 h-4 rounded"
-                                                                style={{
-                                                                    borderColor: isTagSelected ? primaryColor : undefined,
-                                                                    backgroundColor: isTagSelected ? primaryColor : undefined
-                                                                }}
-                                                            />
-                                                            <label
-                                                                htmlFor={`tag-${tag}`}
-                                                                className="text-sm text-slate-600 font-medium cursor-pointer select-none"
-                                                            >
-                                                                {tag}
-                                                            </label>
-                                                        </div>
-                                                    )
-                                                })}
+                                    <AccordionTrigger className="hover:no-underline py-4 px-2 group [&>svg]:hidden">
+                                        {/* Custom Trigger Layout */}
+                                        <div className="flex items-center justify-between w-full">
+                                            <span className="text-base font-bold text-slate-800 uppercase tracking-wide text-left">{category}</span>
+                                            <div className="relative flex items-center justify-center w-4 h-4 mr-2">
+                                                <Plus className="w-4 h-4 text-slate-400 absolute transition-transform duration-200 scale-100 group-data-[state=open]:scale-0 group-data-[state=open]:rotate-90" />
+                                                <Minus className="w-4 h-4 text-slate-800 absolute transition-transform duration-200 scale-0 group-data-[state=open]:scale-100" />
                                             </div>
-                                        ) : (
-                                            <p className="text-xs text-slate-400 italic">Sem filtros adicionais</p>
-                                        )}
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="pb-4 px-2">
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {categoryTags.length > 0 ? (
+                                                categoryTags.map(tagName => {
+                                                    const isSelected = selectedTags.includes(tagName);
+                                                    return (
+                                                        <div
+                                                            key={tagName}
+                                                            onClick={() => onToggleTag(tagName)}
+                                                            className={`
+                                                                cursor-pointer flex items-center gap-2 p-2 rounded-md border transition-all duration-200
+                                                                ${isSelected
+                                                                    ? 'bg-primary/5 border-primary shadow-sm'
+                                                                    : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                                                                }
+                                                            `}
+                                                            style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}
+                                                        >
+                                                            <div
+                                                                className={`
+                                                                    w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors
+                                                                `}
+                                                                style={{
+                                                                    borderColor: isSelected ? primaryColor : undefined,
+                                                                    backgroundColor: isSelected ? primaryColor : 'white'
+                                                                }}
+                                                            >
+                                                                {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                                                            </div>
+                                                            <span
+                                                                className={`text-xs font-medium leading-tight`}
+                                                                style={{ color: isSelected ? primaryColor : '#475569' }}
+                                                            >
+                                                                {tagName}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                <p className="col-span-2 text-xs text-slate-400 italic">Sem tags disponíveis</p>
+                                            )}
+                                        </div>
                                     </AccordionContent>
                                 </AccordionItem>
                             );
