@@ -65,6 +65,7 @@ interface Glass {
     active: boolean;
     created_at: string;
     whatsapp_contact_id?: string | null;
+    glass_tags?: { tag_id: string }[];
 }
 
 interface WhatsAppContact {
@@ -87,6 +88,7 @@ export default function AdminPanel() {
     const [configMenu, setConfigMenu] = useState<ConfigSubMenu>('main');
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
+    const [tagFilter, setTagFilter] = useState('all');
 
     // Profile state for vitrine link
     const [profileSlug, setProfileSlug] = useState<string | null>(null);
@@ -776,7 +778,8 @@ export default function AdminPanel() {
     const filteredGlasses = glasses.filter(g => {
         const matchesSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = categoryFilter === 'all' || g.category === categoryFilter;
-        return matchesSearch && matchesCategory;
+        const matchesTag = tagFilter === 'all' || g.glass_tags?.some(gt => gt.tag_id === tagFilter);
+        return matchesSearch && matchesCategory && matchesTag;
     });
 
     const formatPrice = (value: string) => {
@@ -1059,6 +1062,19 @@ export default function AdminPanel() {
                                         <SelectItem value="all">Todas</SelectItem>
                                         {categories.map((cat) => (
                                             <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                {/* Tag Filter */}
+                                <Select value={tagFilter} onValueChange={setTagFilter}>
+                                    <SelectTrigger className="w-[140px] h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg text-sm shadow-sm hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors">
+                                        <SelectValue placeholder="Tags" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todas as Tags</SelectItem>
+                                        {tags.map((tag) => (
+                                            <SelectItem key={tag.id} value={tag.id}>{tag.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>

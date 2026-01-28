@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, MessageCircle, Glasses, Filter } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import ARTryOnModal from '@/components/ar/ARTryOnModal';
-import CategoryFilterModal from '@/components/CategoryFilterModal';
+// import CategoryFilterModal from '@/components/CategoryFilterModal'; // Deprecated
+import VitrineFilterDrawer from '@/components/VitrineFilterDrawer';
 import VisagismoButton from '@/components/visagismo/VisagismoButton';
 import VisagismoModal from '@/components/visagismo/VisagismoModal';
 import VitrineLayout from '@/components/VitrineLayout';
@@ -62,6 +63,7 @@ export default function Vitrine() {
 
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [selectedCategoriesFilter, setSelectedCategoriesFilter] = useState<string[]>([]);
+  const [selectedTagsFilter, setSelectedTagsFilter] = useState<string[]>([]);
 
   // Visagismo modal state
   const [isVisagismoOpen, setIsVisagismoOpen] = useState(false);
@@ -253,14 +255,63 @@ export default function Vitrine() {
     setSelectedGlass(null);
   };
 
-  // Filter glasses by category
+  // Extract available categories and tags from glasses
+  const { availableCategories, tagsByCategory } = useMemo(() => {
+    const categoriesSet = new Set<string>();
+    const tagsMap: Record<string, Set<string>> = {};
+
+    glasses.forEach(glass => {
+      // Collect Categories
+      if (glass.category) {
+        categoriesSet.add(glass.category);
+
+        // Collect Tags for this category
+        if (!tagsMap[glass.category]) {
+          tagsMap[glass.category] = new Set();
+        }
+
+        glass.glass_tags?.forEach(tagObj => {
+          if (tagObj.tags?.name) {
+            tagsMap[glass.category].add(tagObj.tags.name);
+          }
+        });
+      }
+    });
+
+    // Convert Sets to Arrays
+    const categories = Array.from(categoriesSet).sort();
+    const tags: Record<string, string[]> = {};
+
+    Object.keys(tagsMap).forEach(cat => {
+      tags[cat] = Array.from(tagsMap[cat]).sort();
+    });
+
+    return { availableCategories: categories, tagsByCategory: tags };
+  }, [glasses]);
+
+
+  // Filter glasses by category and tags
   const filteredGlasses = glasses.filter((glass) => {
-    // If no categories selected in filter modal, show all
-    if (selectedCategoriesFilter.length === 0) {
-      return true;
+    // 1. Filter by Categories
+    if (selectedCategoriesFilter.length > 0) {
+      if (!glass.category || !selectedCategoriesFilter.includes(glass.category)) {
+        return false;
+      }
     }
-    // If categories selected in filter modal, filter by them
-    return glass.category && selectedCategoriesFilter.includes(glass.category);
+
+    // 2. Filter by Tags (if any are selected)
+    // If selectedTagsFilter has items, the glass MUST have at least one of the selected tags
+    // OR we might want strict AND logic? Usually e-commerce filters are OR within group, AND across groups.
+    // Here we treat tags as a single group. If I select "Quadrado" and "Redondo", do I want glasses that are (Quad OR Red)? Yes.
+    if (selectedTagsFilter.length > 0) {
+      const glassTagNames = glass.glass_tags?.map(t => t.tags?.name).filter(Boolean) as string[] || [];
+      const hasMatchingTag = selectedTagsFilter.some(tag => glassTagNames.includes(tag));
+      if (!hasMatchingTag) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
   if (loading) {
@@ -312,15 +363,6 @@ export default function Vitrine() {
         storePhone={(profile.wa_enabled && profile.wa_number) ? profile.wa_number : profile.phone}
       />
 
-      {/* Category Filter Modal */}
-      <CategoryFilterModal
-        isOpen={isFilterModalOpen}
-        onClose={() => setIsFilterModalOpen(false)}
-        selectedCategories={selectedCategoriesFilter}
-        onCategoryChange={setSelectedCategoriesFilter}
-        storeId={profile.id}
-      />
-
       {/* Visagismo Modal */}
       <VisagismoModal
         isOpen={isVisagismoOpen}
@@ -331,6 +373,34 @@ export default function Vitrine() {
           setIsTryOnOpen(true);
         }}
         storeId={profile.id}
+      />
+
+      <VitrineFilterDrawer
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        categories={availableCategories}
+        tagsByCategory={tagsByCategory}
+        selectedCategories={selectedCategoriesFilter}
+        selectedTags={selectedTagsFilter}
+        onToggleCategory={(category) => {
+          setSelectedCategoriesFilter(prev =>
+            prev.includes(category)
+              ? prev.filter(c => c !== category)
+              : [...prev, category]
+          );
+        }}
+        onToggleTag={(tag) => {
+          setSelectedTagsFilter(prev =>
+            prev.includes(tag)
+              ? prev.filter(t => t !== tag)
+              : [...prev, tag]
+          );
+        }}
+        onClearFilters={() => {
+          setSelectedCategoriesFilter([]);
+          setSelectedTagsFilter([]);
+        }}
+        primaryColor={primaryColor}
       />
     </>
   );

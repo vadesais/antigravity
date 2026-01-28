@@ -544,7 +544,7 @@ export default function AREditor({
                     {/* Tags MultiSelect */}
                     <div>
                       <Label className="text-xs font-bold text-slate-500 uppercase mb-1">Tags</Label>
-                      <Popover open={openTagCombobox} onOpenChange={setOpenTagCombobox}>
+                      <Popover open={openTagCombobox} onOpenChange={setOpenTagCombobox} modal={true}>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
@@ -569,7 +569,7 @@ export default function AREditor({
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0" align="start">
+                        <PopoverContent className="w-[300px] p-0 z-[80] pointer-events-auto" align="start">
                           <Command>
                             <CommandInput placeholder="Buscar tag..." />
                             <CommandList>
@@ -704,6 +704,7 @@ export default function AREditor({
           onUpdatePart={updatePart}
           onSnapAnchors={snapAnchorsToFront}
           onPushHistory={pushHistory}
+          paused={isPublishModalOpen} // Pause AR when modal is open to fix lag
         />
       </div>
 
@@ -932,6 +933,71 @@ export default function AREditor({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Tag Selector (Multi-Select) */}
+              <div>
+                <Label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 block">Tags</Label>
+                <Popover open={openTagCombobox} onOpenChange={setOpenTagCombobox}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openTagCombobox}
+                      className="w-full justify-between h-auto min-h-10 px-3 py-2 border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      {selectedTags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {selectedTags.map((tagId) => {
+                            const tag = tags.find((t) => t.id === tagId);
+                            return tag ? (
+                              <Badge key={tagId} variant="secondary" className="mr-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800">
+                                {tag.name}
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      ) : (
+                        "Selecione tags..."
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0 bg-white dark:bg-[#1e1e1e] border-slate-200 dark:border-slate-800">
+                    <Command>
+                      <CommandInput placeholder="Buscar tag..." className="h-9" />
+                      <CommandList>
+                        <CommandEmpty>Nenhuma tag encontrada.</CommandEmpty>
+                        <CommandGroup>
+                          {tags.map((tag) => (
+                            <CommandItem
+                              key={tag.id}
+                              value={tag.name}
+                              onSelect={() => {
+                                setSelectedTags((prev) =>
+                                  prev.includes(tag.id)
+                                    ? prev.filter((id) => id !== tag.id)
+                                    : [...prev, tag.id]
+                                );
+                              }}
+                              className="cursor-pointer aria-selected:bg-indigo-50 dark:aria-selected:bg-indigo-900/20"
+                            >
+                              <div className={cn(
+                                "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                selectedTags.includes(tag.id)
+                                  ? "bg-primary text-primary-foreground"
+                                  : "opacity-50 [&_svg]:invisible"
+                              )}>
+                                <Check className={cn("h-4 w-4", selectedTags.includes(tag.id) ? "opacity-100" : "opacity-0")} />
+                              </div>
+                              {tag.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 

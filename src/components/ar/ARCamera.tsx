@@ -18,6 +18,7 @@ interface ARCameraProps {
   onVideoStarted: () => void;
   smoothedRef: React.MutableRefObject<SmoothedFaceData>;
   lastAnchorsRef: React.MutableRefObject<{ frame: { x: number; y: number }; ear: { x: number; y: number } } | null>;
+  paused?: boolean; // New prop for performance
   onUpdatePart: (partName: keyof ARModel['parts'], updates: Partial<ARModel['parts']['front']>) => void;
   onSnapAnchors: () => void;
   onPushHistory: () => void;
@@ -35,6 +36,7 @@ export default function ARCamera({
   onUpdatePart,
   onSnapAnchors,
   onPushHistory,
+  paused = false, // Default false
 }: ARCameraProps) {
   // DEBUG: Verificar preço e telefone para o botão de WhatsApp
   // console.log('ARTryOnModal Debug:', { price: glass?.price, phone: storePhone });
@@ -154,7 +156,7 @@ export default function ARCamera({
 
         onLoadingChange(false);
         onVideoStarted();
-        loop();
+        // Loop is started by useEffect now
       }
     } catch (e: any) {
       console.error('Camera access error:', e);
@@ -175,11 +177,24 @@ export default function ARCamera({
   };
 
   // Main render loop
-  const loop = async () => {
+  const loop = useCallback(async () => {
+    if (paused) return; // Stop processing if paused
     if (!videoRef.current || !faceMeshRef.current) return;
+
     await faceMeshRef.current.send({ image: videoRef.current });
     animationFrameRef.current = requestAnimationFrame(loop);
-  };
+  }, [paused]);
+
+  // Handle loop start/stop based on paused state
+  useEffect(() => {
+    if (!paused && !isLoading) {
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      loop();
+    }
+    return () => {
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    };
+  }, [paused, isLoading, loop]);
 
   // Process face mesh results
   const onResults = useCallback((results: any) => {
